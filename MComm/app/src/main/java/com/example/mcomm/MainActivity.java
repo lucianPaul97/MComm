@@ -4,17 +4,22 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,10 +31,10 @@ public class MainActivity extends AppCompatActivity {
     BroadcastReceiver mReceiver;
     IntentFilter mIntentFilter;
     RecyclerView devices_list;
-    RecyclerView.Adapter mAdapter;
+    DevicesListAdapter mAdapter;
 
-    List<WifiP2pDevice> peers = new ArrayList<WifiP2pDevice>();
-    String[] deviceNameArray;
+    List<WifiP2pDevice> peers = new ArrayList<>();
+    List<String> deviceNameArray = new ArrayList<>();
     WifiP2pDevice[] devicesArray;
 
     @Override
@@ -37,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        init();
+        initWifiReceiver();
         createMeshButton = findViewById(R.id.createMeshButton);
         createMeshButton.setOnClickListener(onClickListener);
         discoverButton = findViewById(R.id.discoverButton);
@@ -59,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
         unregisterReceiver(mReceiver);
     }
 
-    private void init() {
+    private void initWifiReceiver() {
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
         mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
@@ -84,21 +89,23 @@ public class MainActivity extends AppCompatActivity {
                     }
                     break;
                 case R.id.discoverButton:
-                    mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-                        @Override
-                        public void onSuccess() {
-                            Toast.makeText(MainActivity.this, "Discovery started", Toast.LENGTH_SHORT).show();
-                        }
+                        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
+                                Toast.makeText(MainActivity.this, "Discovery started", Toast.LENGTH_SHORT).show();
+                            }
 
-                        @Override
-                        public void onFailure(int reason) {
-                            Toast.makeText(MainActivity.this, "Discovery failed", Toast.LENGTH_SHORT).show();
+                            @Override
+                            public void onFailure(int reason) {
+                                Toast.makeText(MainActivity.this, "Discovery failed", Toast.LENGTH_SHORT).show();
 
-                        }
-                    });
+                            }
+                        });
+
             }
         }
     };
+
 
     WifiP2pManager.PeerListListener peerListListener = new WifiP2pManager.PeerListListener() {
         @Override
@@ -108,26 +115,60 @@ public class MainActivity extends AppCompatActivity {
                 peers.clear();
                 peers.addAll(peersList.getDeviceList());
 
-                deviceNameArray = new String[peersList.getDeviceList().size()];
+                deviceNameArray.clear();
                 devicesArray = new WifiP2pDevice[peersList.getDeviceList().size()];
                 int index=0;
 
                 for (WifiP2pDevice device: peersList.getDeviceList())
                 {
-                    deviceNameArray[index] = device.deviceName;
+                    deviceNameArray.add(device.deviceName);
                     devicesArray[index] = device;
                     index++;
                 }
 
                 mAdapter = new DevicesListAdapter(deviceNameArray);
                 devices_list.setAdapter(mAdapter);
+                mAdapter.setOnItemClickListener(new ItemClickListener() {
+                    @Override
+                    public void onItemClick(int itemPosition) {
+                        final WifiP2pDevice device = peers.get(itemPosition);
+                        WifiP2pConfig config = new WifiP2pConfig();
+                        config.deviceAddress =  device.deviceAddress;
 
+                        mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
+                                Toast.makeText(MainActivity.this, "Connected to"+ device.deviceName, Toast.LENGTH_SHORT).show();
+                            }
+
+                            @Override
+                            public void onFailure(int i) {
+                                Toast.makeText(MainActivity.this, "Failed to connect with"+ device.deviceName, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                });
 
             }
-
+            Log.d("n", Integer.toString(peers.size()));
             if (peers.size()==0)
             {
                 Toast.makeText(MainActivity.this, "No device found", Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
+
+    WifiP2pManager.ConnectionInfoListener connectionInfoListener = new WifiP2pManager.ConnectionInfoListener() {
+        @Override
+        public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
+            final InetAddress groupOwnerAddress = wifiP2pInfo.groupOwnerAddress;
+            if (wifiP2pInfo.groupFormed && wifiP2pInfo.isGroupOwner)
+            {
+                Toast.makeText(MainActivity.this, "Host", Toast.LENGTH_SHORT).show();
+            }
+            else
+            {
+                Toast.makeText(MainActivity.this, "Client", Toast.LENGTH_SHORT).show();
             }
         }
     };

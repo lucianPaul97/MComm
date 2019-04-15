@@ -8,17 +8,23 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import org.w3c.dom.Text;
+import java.util.List;
+
 
 class DevicesListAdapter extends RecyclerView.Adapter<DevicesListAdapter.MyViewHolder> {
 
-    private String [] devices;
+    private List<String> devices;
+    private ItemClickListener mListener;
 
-    public DevicesListAdapter (String [] devicesNames)
+    public DevicesListAdapter (List<String> devicesNames)
     {
-        //TODO: find out what type of arguments are required
         devices = devicesNames;
 
+    }
+
+    public void setOnItemClickListener(ItemClickListener listener)
+    {
+        mListener = listener;
     }
 
     public static class MyViewHolder extends RecyclerView.ViewHolder{
@@ -26,13 +32,28 @@ class DevicesListAdapter extends RecyclerView.Adapter<DevicesListAdapter.MyViewH
         ImageView itemIcon;
         TextView itemText;
 
-        public MyViewHolder (View itemView)
+        public MyViewHolder (View itemView, final ItemClickListener listener)
         {
             super(itemView);
             itemIcon  = itemView.findViewById(R.id.itemIcon);
             itemText = itemView.findViewById(R.id.itemText);
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (listener != null)
+                    {
+                        int position = getAdapterPosition();
+                        if(position != RecyclerView.NO_POSITION)
+                        {
+                            listener.onItemClick(position);
+                        }
+                    }
+                }
+            });
         }
     }
+
+
 
 
     @NonNull
@@ -40,19 +61,19 @@ class DevicesListAdapter extends RecyclerView.Adapter<DevicesListAdapter.MyViewH
     public MyViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
         LayoutInflater inflater = LayoutInflater.from(viewGroup.getContext());
         View view = inflater.inflate(R.layout.list_item_layout, viewGroup, false);
-        return new MyViewHolder(view);
+        return new MyViewHolder(view, mListener);
 
     }
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder myViewHolder, int i) {
-        String title = devices[i];
+        String title = devices.get(i);
         myViewHolder.itemText.setText(title);
 
     }
 
     @Override
     public int getItemCount() {
-        return devices.length;
+        return devices.size();
     }
 }

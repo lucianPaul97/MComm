@@ -3,22 +3,26 @@ package com.example.mcomm;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
-import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import java.net.Inet4Address;
+import com.example.mcomm.mcomm.communication.Client;
+import com.example.mcomm.mcomm.communication.Server;
+
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,16 +30,22 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private Button createMeshButton, discoverButton;
+    private Button sendButton;
+    private EditText inputText;
+    private TextView receiveMessage;
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
     BroadcastReceiver mReceiver;
     IntentFilter mIntentFilter;
     RecyclerView devices_list;
     DevicesListAdapter mAdapter;
+    Server serverSide;
+    Client clientSide;
 
     List<WifiP2pDevice> peers = new ArrayList<>();
     List<String> deviceNameArray = new ArrayList<>();
     WifiP2pDevice[] devicesArray;
+    public static final int MESSAGE_READ=1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,10 +53,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         initWifiReceiver();
+        receiveMessage = findViewById(R.id.receiveMessage);
+        inputText = findViewById(R.id.inputText);
         createMeshButton = findViewById(R.id.createMeshButton);
         createMeshButton.setOnClickListener(onClickListener);
         discoverButton = findViewById(R.id.discoverButton);
         discoverButton.setOnClickListener(onClickListener);
+        sendButton = findViewById(R.id.sendButton);
+        sendButton.setOnClickListener(onClickListener);
         devices_list = findViewById(R.id.devices_list);
         devices_list.setLayoutManager(new LinearLayoutManager(this));
 
@@ -80,31 +94,50 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             Button eventButton = (Button) v;
             switch (eventButton.getId()) {
-                case R.id.createMeshButton:
-                    WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                    if (wifiManager.isWifiEnabled()) {
-                        Toast.makeText(MainActivity.this, "WiFi is on", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(MainActivity.this, "WiFi is off", Toast.LENGTH_SHORT).show();
-                    }
-                    break;
                 case R.id.discoverButton:
-                        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-                            @Override
-                            public void onSuccess() {
-                                Toast.makeText(MainActivity.this, "Discovery started", Toast.LENGTH_SHORT).show();
-                            }
+                    mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                        @Override
+                        public void onSuccess() {
+                            Toast.makeText(MainActivity.this, "Discovery started", Toast.LENGTH_SHORT).show();
+                        }
 
-                            @Override
-                            public void onFailure(int reason) {
-                                Toast.makeText(MainActivity.this, "Discovery failed", Toast.LENGTH_SHORT).show();
+                        @Override
+                        public void onFailure(int reason) {
+                            Toast.makeText(MainActivity.this, "Discovery failed", Toast.LENGTH_SHORT).show();
 
-                            }
-                        });
+                        }
+                    });
+                    break;
+                case R.id.sendButton:
+                    String message = inputText.getText().toString();
+                    if (serverSide != null)
+                        serverSide.sendReceive.write(message.getBytes());
+                    else
+                        clientSide.sendReceive.write(message.getBytes());
+                   break;
+
+
 
             }
         }
     };
+
+    Handler handler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message message) {
+            switch (message.what)
+            {
+                case MESSAGE_READ:
+                    byte [] readBuff = (byte[]) message.obj;
+                    String tempMessage = new String(readBuff, 0, message.arg1);
+                    receiveMessage.setText(tempMessage);
+                    break;
+            }
+            return true;
+        }
+    });
+
+
 
 
     WifiP2pManager.PeerListListener peerListListener = new WifiP2pManager.PeerListListener() {
@@ -150,7 +183,6 @@ public class MainActivity extends AppCompatActivity {
                 });
 
             }
-            Log.d("n", Integer.toString(peers.size()));
             if (peers.size()==0)
             {
                 Toast.makeText(MainActivity.this, "No device found", Toast.LENGTH_SHORT).show();
@@ -165,11 +197,16 @@ public class MainActivity extends AppCompatActivity {
             if (wifiP2pInfo.groupFormed && wifiP2pInfo.isGroupOwner)
             {
                 Toast.makeText(MainActivity.this, "Host", Toast.LENGTH_SHORT).show();
+                serverSide = new Server(handler);
+                serverSide.start();
             }
             else
             {
                 Toast.makeText(MainActivity.this, "Client", Toast.LENGTH_SHORT).show();
+                clientSide = new Client(groupOwnerAddress, handler);
+                clientSide.start();
             }
         }
     };
+
 }

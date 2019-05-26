@@ -53,9 +53,6 @@ class DevicesListAdapter extends RecyclerView.Adapter<DevicesListAdapter.MyViewH
         }
     }
 
-
-
-
     @NonNull
     @Override
     public MyViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {

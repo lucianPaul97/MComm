@@ -8,16 +8,16 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-public class Client extends Thread {
+public class Client extends CommunicationParticipant implements Runnable {
 
     private String TAG = "ClientClass";
     private Socket mSocket;
     private String mHostAddress;
-    public SendReceive sendReceive;
     private Handler mHandler;
 
     public Client(InetAddress hostAddress, Handler handler)
     {
+        super(null, handler);
         mHostAddress = hostAddress.getHostAddress();
         mSocket = new Socket();
         mHandler = handler;
@@ -28,8 +28,8 @@ public class Client extends Thread {
         try
         {
             mSocket.connect(new InetSocketAddress(mHostAddress, 9000), 500);
-            sendReceive = new SendReceive(mSocket, mHandler);
-            sendReceive.start();
+            this.setSocket(mSocket);
+            this.beginCommunication();
 
         }catch (IOException e)
         {

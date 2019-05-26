@@ -7,17 +7,17 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Server extends Thread {
+public class Server extends CommunicationParticipant implements Runnable {
 
     private String TAG = "SocketClass";
     private Socket mSocket;
     private ServerSocket mServerSocket;
-    public SendReceive sendReceive;
     private Handler mHandler;
 
 
     public Server (Handler handler)
     {
+        super(null, handler);
         mHandler = handler;
     }
 
@@ -27,9 +27,8 @@ public class Server extends Thread {
         {
             mServerSocket = new ServerSocket(9000);
             mSocket=mServerSocket.accept();
-            sendReceive = new SendReceive(mSocket, mHandler);
-            sendReceive.start();
-
+            this.setSocket(mSocket);
+            this.beginCommunication();
         }catch (IOException e)
         {
             Log.d(TAG, e.toString());

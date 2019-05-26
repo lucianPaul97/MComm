@@ -1,8 +1,11 @@
 package com.example.mcomm;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
@@ -10,6 +13,8 @@ import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -20,6 +25,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.mcomm.mcomm.communication.ChatActivity;
 import com.example.mcomm.mcomm.communication.Client;
 import com.example.mcomm.mcomm.communication.Server;
 
@@ -34,18 +40,20 @@ public class MainActivity extends AppCompatActivity {
     private EditText inputText;
     private TextView receiveMessage;
     WifiP2pManager mManager;
+    private String contactName;
     WifiP2pManager.Channel mChannel;
     BroadcastReceiver mReceiver;
     IntentFilter mIntentFilter;
     RecyclerView devices_list;
     DevicesListAdapter mAdapter;
-    Server serverSide;
-    Client clientSide;
+    Server communicateAsServer;
+    Client communicateAsClient;
 
     List<WifiP2pDevice> peers = new ArrayList<>();
     List<String> deviceNameArray = new ArrayList<>();
     WifiP2pDevice[] devicesArray;
     public static final int MESSAGE_READ=1;
+    private int ACCESS_COARSE_LOCATION_PERMISSION = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +72,36 @@ public class MainActivity extends AppCompatActivity {
         devices_list = findViewById(R.id.devices_list);
         devices_list.setLayoutManager(new LinearLayoutManager(this));
 
+        checkPermissions();
+
+    }
+
+    private void checkPermissions() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_CONTACTS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Permission is not granted
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+            } else {
+                // No explanation needed, we can request the permission.
+                ActivityCompat.requestPermissions(this,
+                        new String[] {Manifest.permission.ACCESS_COARSE_LOCATION},
+                        ACCESS_COARSE_LOCATION_PERMISSION);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        } else {
+            // Permission has already been granted
+        }
+        
     }
 
     @Override
@@ -80,7 +118,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void initWifiReceiver() {
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        mChannel = mManager.initialize(this, getMainLooper(), null);
+        if (mManager != null) {
+            mChannel = mManager.initialize(this, getMainLooper(), null);
+        }
         mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -110,10 +150,10 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case R.id.sendButton:
                     String message = inputText.getText().toString();
-                    if (serverSide != null)
-                        serverSide.sendReceive.write(message.getBytes());
+                    if (communicateAsServer != null)
+                        communicateAsServer.write(message.getBytes());
                     else
-                        clientSide.sendReceive.write(message.getBytes());
+                        communicateAsClient.write(message.getBytes());
                    break;
 
 
@@ -172,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onSuccess() {
                                 Toast.makeText(MainActivity.this, "Connected to"+ device.deviceName, Toast.LENGTH_SHORT).show();
+                                contactName = device.deviceName;
                             }
 
                             @Override
@@ -194,18 +235,27 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
             final InetAddress groupOwnerAddress = wifiP2pInfo.groupOwnerAddress;
+            Thread communicationThread;
             if (wifiP2pInfo.groupFormed && wifiP2pInfo.isGroupOwner)
             {
                 Toast.makeText(MainActivity.this, "Host", Toast.LENGTH_SHORT).show();
-                serverSide = new Server(handler);
-                serverSide.start();
+
+                communicateAsServer = new Server(handler);
+                communicationThread  = new Thread(communicateAsServer);
+
             }
             else
             {
                 Toast.makeText(MainActivity.this, "Client", Toast.LENGTH_SHORT).show();
-                clientSide = new Client(groupOwnerAddress, handler);
-                clientSide.start();
+                communicateAsClient = new Client(groupOwnerAddress, handler);
+                communicationThread  = new Thread(communicateAsClient);
+
             }
+            communicationThread.start();
+            Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+            intent.putExtra("contactName", contactName);
+            startActivity(intent);
+
         }
     };
 

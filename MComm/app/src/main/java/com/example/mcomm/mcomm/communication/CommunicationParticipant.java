@@ -1,25 +1,26 @@
 package com.example.mcomm.mcomm.communication;
-
 import android.os.Handler;
 import android.os.StrictMode;
 import android.util.Log;
-
 import com.example.mcomm.MainActivity;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-public class SendReceive extends Thread {
 
-    private String TAG = "SendReceive Class";
+public class CommunicationParticipant {
+
+    private String TAG = "CommunicationParticipant Class";
     private Socket mSocket;
     private InputStream mInputStream;
     private OutputStream mOutputStream;
     private Handler mHandler;
 
-    public SendReceive(Socket socket, Handler handler)
+
+
+
+    public CommunicationParticipant(Socket socket, Handler handler)
     {
         mSocket = socket;
         mHandler = handler;
@@ -30,11 +31,14 @@ public class SendReceive extends Thread {
         }catch (IOException e)
         {
             Log.d(TAG, e.toString());
+        }catch (NullPointerException e)
+        {
+            Log.d(TAG, e.toString());
         }
+
     }
 
-    @Override
-    public void run() {
+    protected void beginCommunication() {
         int bytes;
         byte[] buffer = new byte[1024];
 
@@ -66,4 +70,17 @@ public class SendReceive extends Thread {
             Log.d(TAG, e.toString());
         }
     }
+
+    protected void setSocket(Socket socket)
+    {
+        mSocket = socket;
+        try {
+            mInputStream = mSocket.getInputStream();
+            mOutputStream = mSocket.getOutputStream();
+        } catch (IOException e) {
+            Log.d(TAG, e.toString());
+        }
+    }
+
+
 }

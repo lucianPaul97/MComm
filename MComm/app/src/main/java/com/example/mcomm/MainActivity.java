@@ -40,20 +40,20 @@ public class MainActivity extends AppCompatActivity {
     private EditText inputText;
     private TextView receiveMessage;
     WifiP2pManager mManager;
-    private String contactName;
     WifiP2pManager.Channel mChannel;
     BroadcastReceiver mReceiver;
     IntentFilter mIntentFilter;
     RecyclerView devices_list;
     DevicesListAdapter mAdapter;
-    Server communicateAsServer;
-    Client communicateAsClient;
+//    Server communicateAsServer;
+//    Client communicateAsClient;
 
     List<WifiP2pDevice> peers = new ArrayList<>();
     List<String> deviceNameArray = new ArrayList<>();
     WifiP2pDevice[] devicesArray;
     public static final int MESSAGE_READ=1;
     private int ACCESS_COARSE_LOCATION_PERMISSION = 1;
+    public String contactName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,32 +150,32 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case R.id.sendButton:
                     String message = inputText.getText().toString();
-                    if (communicateAsServer != null)
-                        communicateAsServer.write(message.getBytes());
-                    else
-                        communicateAsClient.write(message.getBytes());
-                   break;
+//                    if (communicateAsServer != null)
+//                        communicateAsServer.write(message.getBytes());
+//                    else
+//                        communicateAsClient.write(message.getBytes());
+//                   break;
 
 
 
             }
         }
     };
-
-    Handler handler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message message) {
-            switch (message.what)
-            {
-                case MESSAGE_READ:
-                    byte [] readBuff = (byte[]) message.obj;
-                    String tempMessage = new String(readBuff, 0, message.arg1);
-                    receiveMessage.setText(tempMessage);
-                    break;
-            }
-            return true;
-        }
-    });
+//
+//    Handler handler = new Handler(new Handler.Callback() {
+//        @Override
+//        public boolean handleMessage(Message message) {
+//            switch (message.what)
+//            {
+//                case MESSAGE_READ:
+//                    byte [] readBuff = (byte[]) message.obj;
+//                    String tempMessage = new String(readBuff, 0, message.arg1);
+//                    receiveMessage.setText(tempMessage);
+//                    break;
+//            }
+//            return true;
+//        }
+//    });
 
 
 
@@ -235,25 +235,27 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
             final InetAddress groupOwnerAddress = wifiP2pInfo.groupOwnerAddress;
-            Thread communicationThread;
+            //Thread communicationThread;
+            boolean isHost;
             if (wifiP2pInfo.groupFormed && wifiP2pInfo.isGroupOwner)
             {
-                Toast.makeText(MainActivity.this, "Host", Toast.LENGTH_SHORT).show();
-
-                communicateAsServer = new Server(handler);
-                communicationThread  = new Thread(communicateAsServer);
-
-            }
-            else
-            {
-                Toast.makeText(MainActivity.this, "Client", Toast.LENGTH_SHORT).show();
-                communicateAsClient = new Client(groupOwnerAddress, handler);
-                communicationThread  = new Thread(communicateAsClient);
+//                Toast.makeText(MainActivity.this, "Host", Toast.LENGTH_SHORT).show();
+//                communicateAsServer = new Server(handler);
+//                communicationThread  = new Thread(communicateAsServer);
+                isHost = true;
 
             }
-            communicationThread.start();
+            else {
+//                Toast.makeText(MainActivity.this, "Client", Toast.LENGTH_SHORT).show();
+//                communicateAsClient = new Client(groupOwnerAddress.toString(), handler);
+//                communicationThread = new Thread(communicateAsClient);
+                isHost = false;
+            }
+//            communicationThread.start();
             Intent intent = new Intent(MainActivity.this, ChatActivity.class);
             intent.putExtra("contactName", contactName);
+            intent.putExtra("isHost", isHost);
+            intent.putExtra("hostAddress", groupOwnerAddress.getHostAddress());
             startActivity(intent);
 
         }

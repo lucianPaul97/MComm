@@ -15,10 +15,10 @@ public class Client extends CommunicationParticipant implements Runnable {
     private String mHostAddress;
     private Handler mHandler;
 
-    public Client(InetAddress hostAddress, Handler handler)
+    public Client(String hostAddress, Handler handler)
     {
         super(null, handler);
-        mHostAddress = hostAddress.getHostAddress();
+        mHostAddress = hostAddress;
         mSocket = new Socket();
         mHandler = handler;
     }

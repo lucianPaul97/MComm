@@ -82,7 +82,7 @@ public class MessageListAdapter extends RecyclerView.Adapter {
         private void bind (Message message)
         {
             messageText.setText(message.message);
-            timeText.setText("");
+            timeText.setText(message.createdAt);
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.example.mcomm.mcomm.communication;
 
+import android.content.Intent;
 import android.os.Handler;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -27,8 +29,6 @@ public class ChatActivity extends AppCompatActivity {
     private List<Message> messageList;
     private Button sendButton;
     private EditText writeMessage;
-    private Server server;
-    private Client client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,19 +36,8 @@ public class ChatActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chat);
         String contactName = getIntent().getExtras().getString("contactName");
         boolean isHost = getIntent().getExtras().getBoolean("isHost");
-        Thread communicationThread;
-        if (isHost)
-        {
-            server = new Server(handler);
-            communicationThread = new Thread(server);
-        }
-        else
-        {
-            String hostAddress = getIntent().getExtras().getString("hostAddress");
-            client = new Client(hostAddress, handler);
-            communicationThread= new Thread(client);
-        }
-        communicationThread.start();
+        String hostAddress = getIntent().getExtras().getString("hostAddress");
+        startCommunicationService(isHost, hostAddress);
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle(contactName);
         setSupportActionBar(toolbar);
@@ -68,6 +57,18 @@ public class ChatActivity extends AppCompatActivity {
 
     }
 
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        if (server != null)
+//        {
+//            server.closeConnection();
+//        }
+//        else
+//        {
+//            client.closeConnection();
+//        }
+//    }
 
     private View.OnClickListener clickListener = new View.OnClickListener() {
         @Override
@@ -88,17 +89,16 @@ public class ChatActivity extends AppCompatActivity {
                         createdAt = DateFormat.getDateTimeInstance().format(date);
                     }
                     String messageToSend = writeMessage.getText().toString();
+                    //send message via CommunicationService
+                    Intent intent = new Intent(getApplicationContext(), CommunicationService.class);
+                    intent.putExtra("message", messageToSend);
+                    startService(intent);
+
+                    //print message on the screen
                     messageList.add(0, new Message(messageToSend,1, createdAt));
                     messageListAdapter = new MessageListAdapter(getApplicationContext(), messageList);
                     mMessageRecycler.setAdapter(messageListAdapter);
-                    if (server != null)
-                    {
-                        server.write(messageToSend.getBytes());
-                    }
-                    else
-                    {
-                        client.write(messageToSend.getBytes());
-                    }
+                    writeMessage.setText("");
                 }
             }
         }
@@ -129,4 +129,14 @@ public class ChatActivity extends AppCompatActivity {
             return true;
         }
     });
+
+    private void startCommunicationService(boolean isHost, @Nullable String hostAddress)
+    {
+        Intent intent = new Intent(this, CommunicationService.class);
+        intent.setAction("createService");
+        intent.putExtra("isHost", isHost);
+        intent.putExtra("hostAddress", hostAddress);
+        startService(intent);
+    }
+
 }

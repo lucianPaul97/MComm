@@ -11,8 +11,6 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -26,8 +24,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mcomm.mcomm.communication.ChatActivity;
-import com.example.mcomm.mcomm.communication.Client;
-import com.example.mcomm.mcomm.communication.Server;
 
 import java.net.InetAddress;
 import java.util.ArrayList;

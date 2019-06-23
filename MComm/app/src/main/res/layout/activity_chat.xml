@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".mcomm.communication.ChatActivity">
+    tools:context=".chat.ChatActivity"
+    android:background="@color/colorPrimary">
 
 
     <include
@@ -25,7 +26,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:scrollbars="vertical"
-         />
+        />
 
     <!-- A horizontal line between the chatbox and RecyclerView -->
     <View
@@ -40,12 +41,13 @@
         android:id="@+id/layout_chatbox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#ffffff"
+        android:background="@color/colorPrimary"
         android:minHeight="48dp"
         android:layout_marginTop="8dp"
         android:visibility="visible"
         android:orientation="horizontal"
         android:gravity="bottom"
+
         android:layout_alignParentBottom="true"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent">
@@ -61,6 +63,8 @@
             android:visibility="visible"
             android:background="@android:color/transparent"
             android:hint="Enter message"
+            android:textColor="#ffff"
+            android:textColorHint="@color/colorPrimaryDark"
             android:inputType="textUri"
             android:maxLines="6" />
 
@@ -69,13 +73,13 @@
             android:layout_width="64dp"
             android:layout_height="48dp"
             android:layout_gravity="bottom"
-            android:background="?attr/selectableItemBackground"
+            android:background="@color/colorPrimary"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:textColor="@color/colorPrimary"
+            android:textColor="@color/colorPrimaryDark"
             android:text="SEND"
-            android:textSize="14sp" />
+            android:textSize="14sp"/>
 
     </LinearLayout>
 

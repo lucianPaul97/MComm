@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
@@ -61,7 +60,8 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
         deviceNameList = new ArrayList<>();
         deviceListAdapter = new DeviceListAdapter(deviceNameList);
         deviceList.setAdapter(deviceListAdapter);
-        p2PManager = new MyWifiP2PManager(getActivity(), getContext(), this);
+        p2PManager = new MyWifiP2PManager(getActivity(), getContext());
+        p2PManager.setAvailableDevicesListener(this);
         checkForAvailableDevices();
 
     }

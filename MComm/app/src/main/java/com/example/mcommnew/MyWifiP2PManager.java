@@ -4,18 +4,17 @@ import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
-import android.net.wifi.WifiManager;
-import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.support.annotation.Nullable;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.example.mcommnew.available_devices.IAvailableDevicesListener;
 import com.example.mcommnew.receiver.WifiDirectBroadcastReceiver;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Method;
 
 import static android.os.Looper.getMainLooper;
 
@@ -28,7 +27,7 @@ public class MyWifiP2PManager {
     private IntentFilter mIntentFilter;
     private IAvailableDevicesListener mAvailableDevicesListener;
 
-    public MyWifiP2PManager(Activity activity, Context context, IAvailableDevicesListener availableDevicesListener)
+    public MyWifiP2PManager(Activity activity, Context context)
     {
         mActivity = activity;
         mManager = (WifiP2pManager) activity.getSystemService(Context.WIFI_P2P_SERVICE);
@@ -41,7 +40,6 @@ public class MyWifiP2PManager {
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
-        mAvailableDevicesListener = availableDevicesListener;
     }
 
     public void registerWifiReceiver()
@@ -93,5 +91,36 @@ public class MyWifiP2PManager {
     public WifiP2pManager.Channel getWiFiP2PChannel()
     {
         return mChannel;
+    }
+
+    public void setAvailableDevicesListener (IAvailableDevicesListener availableDevicesListener)
+    {
+        mAvailableDevicesListener = availableDevicesListener;
+    }
+
+    public void setUsername(String newUsername)
+    {
+        try {
+            Method m = mManager.getClass().getMethod(
+                    "setDeviceName",
+                    new Class[] { WifiP2pManager.Channel.class, String.class,
+                            WifiP2pManager.ActionListener.class });
+
+            m.invoke(mManager,mChannel, newUsername, new WifiP2pManager.ActionListener() {
+                public void onSuccess() {
+                    //Code for Success in changing name
+                    Toast.makeText(mActivity, "Username changed successfully", Toast.LENGTH_SHORT).show();
+                    Log.d("Change username", "success");
+                }
+
+                public void onFailure(int reason) {
+                    //Code to be done while name change Fails
+                    Toast.makeText(mActivity, "Username change failed", Toast.LENGTH_SHORT).show();
+                }
+            });
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
     }
 }

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -17,8 +18,12 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import com.example.mcommnew.available_devices.AvailableDevicesFragment;
+import com.example.mcommnew.user.UsernameDialog;
+import com.example.mcommnew.user.UsernameDialogListener;
 
-public class MainActivity extends AppCompatActivity {
+import java.lang.reflect.Method;
+
+public class MainActivity extends AppCompatActivity implements UsernameDialogListener {
 
     private static int ACCESS_COARSE_LOCATION_PERMISSION = 1;
 
@@ -50,6 +55,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.changeUsername:
+                openChangeUsernameDialog();
+                break;
             case R.id.newGroup:
                 //TODO: implement this feature
                 break;
@@ -65,6 +73,11 @@ public class MainActivity extends AppCompatActivity {
 
         }
         return true;
+    }
+
+    private void openChangeUsernameDialog() {
+        UsernameDialog usernameDialog = new UsernameDialog();
+        usernameDialog.show(getSupportFragmentManager(), "change username");
     }
 
     private boolean isWiFiEnabled()
@@ -138,5 +151,12 @@ public class MainActivity extends AppCompatActivity {
             // Permission has already been granted
         }
 
+    }
+
+    @Override
+    public void changeUsername(String newUsername) {
+
+        MyWifiP2PManager myWifiP2PManager = new MyWifiP2PManager(this, MainActivity.this);
+        myWifiP2PManager.setUsername(newUsername);
     }
 }

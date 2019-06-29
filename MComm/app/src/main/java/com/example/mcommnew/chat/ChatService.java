@@ -16,24 +16,33 @@ import com.example.mcommnew.MainActivity;
 import com.example.mcommnew.R;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-
-import static com.example.mcommnew.chat.ChatActivity.MESSAGE_READ;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import static com.example.mcommnew.notifications.NotificationManager.CHANNEL_ID;
 
 public class ChatService extends Service {
+    //TODO: write method for clients thread pool
+    //TODO: retrieve messages from queue and send them to app
     private final String TAG = "CommunicationService";
     private boolean isHost;
     private Socket mSocket;
+    private List<ClientConnectionHandler> clientsList;
+    public static Queue<String> messageQueue;
+    private boolean sendMessages;
 
     @Override
     public void onCreate() {
         super.onCreate();
         startInForeground(); //start service in foreground
+        messageQueue = new ConcurrentLinkedQueue<>();
+        sendMessages = true;
+
     }
 
     private void startInForeground() {
@@ -54,13 +63,20 @@ public class ChatService extends Service {
     @Override
     public int onStartCommand(final Intent intent, int flags, int startId) {
         if (intent.getAction() == "createService") {
-            Thread thread = new Thread(new Runnable() {
+            Thread initializeSocketsThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     initializeSocket(intent);
                 }
             });
-            thread.start();
+            initializeSocketsThread.start();
+            Thread sendMessagesToAppThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    sendMessagesToApp();
+                }
+            });
+            sendMessagesToAppThread.start();
         } else {
             String messageToSend = intent.getExtras().getString("message");
             write(messageToSend.getBytes());
@@ -73,13 +89,26 @@ public class ChatService extends Service {
 
     @Override
     public void onDestroy() {
-        try {
-            mSocket.getInputStream().close();
-            mSocket.getOutputStream().close();
-            mSocket.close();
-            mSocket = null;
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (mSocket != null) {
+            try {
+                mSocket.getInputStream().close();
+                mSocket.getOutputStream().close();
+                mSocket.close();
+                mSocket = null;
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else
+        {
+            for(int i=0;i<clientsList.size();++i)
+            {
+                clientsList.get(i).closeConnection();
+            }
+            sendMessages = false;
+            sendRemainingMessagesToApp();
+            messageQueue = null;
         }
     }
 
@@ -94,9 +123,15 @@ public class ChatService extends Service {
 
         if (isHost) {
             try {
+                clientsList = new ArrayList<>();
                 ServerSocket serverSocket = new ServerSocket(9000);
-                Thread.sleep(5000);
-                mSocket = serverSocket.accept();
+                while(true) {
+                    Thread.sleep(5000);
+                    Socket clientSocket = serverSocket.accept();
+                    ClientConnectionHandler clientConnectionHandler = new ClientConnectionHandler(clientSocket);
+                    clientsList.add(clientConnectionHandler);
+                    clientConnectionHandler.start();
+                }
             } catch (IOException e) {
                 Log.d(TAG, e.getMessage());
             }
@@ -111,53 +146,44 @@ public class ChatService extends Service {
             try {
                 mSocket = new Socket();
                 mSocket.connect(new InetSocketAddress(hostAddress, 9000), 500);
+                ClientConnectionHandler clientConnectionHandler = new ClientConnectionHandler(mSocket);
+                clientConnectionHandler.start();
             } catch (IOException e) {
                 Log.d(TAG, e.getMessage());
             }
         }
 
-        beginCommunication();
     }
 
-
-    //Handle incoming message from other users
-    Handler handler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(android.os.Message message) {
-            if (message.what == MESSAGE_READ) {
-                byte[] readBuff = (byte[]) message.obj;
-                String receivedMessage = new String(readBuff, 0, message.arg1);
-                Intent intent = new Intent(getApplicationContext(), ChatActivity.class);
-                intent.setAction("messageReceiver");
-                intent.putExtra("message", receivedMessage);
-                //send the received message to chat activity
-                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
-
-
+    private void sendMessagesToApp()
+    {
+        while(sendMessages)
+        {
+            if (!messageQueue.isEmpty())
+            {
+                String messageToSend = messageQueue.poll();
+                sendMessage(messageToSend);
             }
-
-            return true;
         }
-    });
 
-    private void beginCommunication() {
+    }
 
-        try {
-            InputStream mInputStream = mSocket.getInputStream();
-            int bytes;
-            byte[] buffer = new byte[1024];
-
-            if (mInputStream != null) {
-                while (mSocket != null) {
-                    bytes = mInputStream.read(buffer);
-                    if (bytes > 0) {
-                        handler.obtainMessage(MESSAGE_READ, bytes, -1, buffer).sendToTarget();
-                    }
-                }
-            }
-        } catch (IOException e) {
-            Log.d(TAG, e.getMessage());
+    private void sendRemainingMessagesToApp()
+    {
+        while(!messageQueue.isEmpty())
+        {
+            String messageToSend = messageQueue.poll();
+            sendMessage(messageToSend);
         }
+    }
+
+    private void sendMessage(String messageToSend)
+    {
+        Intent intent = new Intent(getApplicationContext(), ChatActivity.class);
+        intent.setAction("messageReceiver");
+        intent.putExtra("message", messageToSend);
+        //send the received message to chat activity
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
     }
 
 
@@ -165,9 +191,21 @@ public class ChatService extends Service {
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
                 .permitAll().build();
         StrictMode.setThreadPolicy(policy);
+        OutputStream outputStream;
         try {
-            OutputStream outputStream = mSocket.getOutputStream();
-            outputStream.write(bytes);
+
+            if (clientsList != null) {
+
+                for (int i = 0; i < clientsList.size(); ++i) {
+                    outputStream = clientsList.get(i).getSocket().getOutputStream();
+                    outputStream.write(bytes);
+                }
+            }
+            else
+            {
+                outputStream = mSocket.getOutputStream();
+                outputStream.write(bytes);
+            }
         } catch (IOException e) {
             Log.d(TAG, e.toString());
         }

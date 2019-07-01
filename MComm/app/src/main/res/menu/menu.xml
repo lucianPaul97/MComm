@@ -4,11 +4,6 @@
 
 
     <item
-        android:id="@+id/changeUsername"
-        android:title="Change username"
-        app:showAsAction="never"/>
-
-    <item
         android:id="@+id/newGroup"
         android:title="Create new group"
         app:showAsAction="never"

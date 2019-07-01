@@ -115,7 +115,7 @@ public class MyWifiP2PManager {
 
                 public void onFailure(int reason) {
                     //Code to be done while name change Fails
-                    Toast.makeText(mActivity, "Username change failed", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mActivity, "WiFi must be enabled to perform this action", Toast.LENGTH_SHORT).show();
                 }
             });
         } catch (Exception e) {

@@ -5,7 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
-import android.net.wifi.p2p.WifiP2pManager;
+
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -20,8 +20,6 @@ import android.view.MenuItem;
 import com.example.mcommnew.available_devices.AvailableDevicesFragment;
 import com.example.mcommnew.user.UsernameDialog;
 import com.example.mcommnew.user.UsernameDialogListener;
-
-import java.lang.reflect.Method;
 
 public class MainActivity extends AppCompatActivity implements UsernameDialogListener {
 
@@ -88,33 +86,32 @@ public class MainActivity extends AppCompatActivity implements UsernameDialogLis
 
     private void askToEnableWiFi() {
         final WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        if (!wifiManager.isWifiEnabled()) { //check if WiFi is enabled
-            //build an alert dialog and ask the user to activate te wifi
-            AlertDialog.Builder askForWifiBuilder = new AlertDialog.Builder(this);
-            askForWifiBuilder.setMessage("WiFi is disabled. Would you like to activate now ?");
-            askForWifiBuilder.setPositiveButton(
-                    "Yes",
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            wifiManager.setWifiEnabled(true);
-                            //if WiFi was enabled, load AvailableDevicesFragment
-                            loadAvailableDevicesFragment();
-                        }
+        //build an alert dialog and ask the user to activate te wifi
+        AlertDialog.Builder askForWifiBuilder = new AlertDialog.Builder(this);
+        askForWifiBuilder.setMessage("WiFi is disabled. Would you like to activate now ?");
+        askForWifiBuilder.setPositiveButton(
+                "Yes",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        wifiManager.setWifiEnabled(true);
+                        //if WiFi was enabled, load AvailableDevicesFragment
+                        loadAvailableDevicesFragment();
                     }
-            );
-            askForWifiBuilder.setNegativeButton(
-                    "No",
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
+                }
+        );
+        askForWifiBuilder.setNegativeButton(
+                "No",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
 
-                        }
                     }
-            );
-            AlertDialog askForWifi = askForWifiBuilder.create();
-            askForWifi.show();
-        }
+                }
+        );
+        AlertDialog askForWifi = askForWifiBuilder.create();
+        askForWifi.show();
+
     }
 
     private void loadAvailableDevicesFragment()
@@ -127,30 +124,18 @@ public class MainActivity extends AppCompatActivity implements UsernameDialogLis
     }
     private void checkPermissions() {
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.READ_CONTACTS)
+                Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
 
-            // Permission is not granted
-            // Should we show an explanation?
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
             } else {
-                // No explanation needed, we can request the permission.
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                         ACCESS_COARSE_LOCATION_PERMISSION);
 
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
             }
-        } else {
-            // Permission has already been granted
         }
-
     }
 
     @Override

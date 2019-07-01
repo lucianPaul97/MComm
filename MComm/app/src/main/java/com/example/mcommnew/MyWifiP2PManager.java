@@ -7,12 +7,10 @@ import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.support.annotation.Nullable;
-import android.util.Log;
-import android.widget.Toast;
 
 import com.example.mcommnew.available_devices.IAvailableDevicesListener;
 import com.example.mcommnew.receiver.WifiDirectBroadcastReceiver;
+import com.example.mcommnew.user.IUsername;
 
 import java.lang.reflect.Method;
 
@@ -26,6 +24,7 @@ public class MyWifiP2PManager {
     private BroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
     private IAvailableDevicesListener mAvailableDevicesListener;
+    private IUsername iUsername;
 
     public MyWifiP2PManager(Activity activity, Context context)
     {
@@ -98,7 +97,20 @@ public class MyWifiP2PManager {
         mAvailableDevicesListener = availableDevicesListener;
     }
 
-    public void setUsername(String newUsername)
+    public void setIUsernameListener(IUsername iUsernameListener)
+    {
+        iUsername = iUsernameListener;
+    }
+
+    public void setDeviceName(String deviceName)
+    {
+        if(iUsername != null)
+        {
+            iUsername.setUserName(deviceName);
+        }
+    }
+
+    public void changeUsername(String newUsername, WifiP2pManager.ActionListener actionListener)
     {
         try {
             Method m = mManager.getClass().getMethod(
@@ -106,18 +118,7 @@ public class MyWifiP2PManager {
                     new Class[] { WifiP2pManager.Channel.class, String.class,
                             WifiP2pManager.ActionListener.class });
 
-            m.invoke(mManager,mChannel, newUsername, new WifiP2pManager.ActionListener() {
-                public void onSuccess() {
-                    //Code for Success in changing name
-                    Toast.makeText(mActivity, "Username changed successfully", Toast.LENGTH_SHORT).show();
-                    Log.d("Change username", "success");
-                }
-
-                public void onFailure(int reason) {
-                    //Code to be done while name change Fails
-                    Toast.makeText(mActivity, "WiFi must be enabled to perform this action", Toast.LENGTH_SHORT).show();
-                }
-            });
+            m.invoke(mManager,mChannel, newUsername,actionListener);
         } catch (Exception e) {
 
             e.printStackTrace();

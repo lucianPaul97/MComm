@@ -18,10 +18,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import com.example.mcommnew.available_devices.AvailableDevicesFragment;
-import com.example.mcommnew.user.UsernameDialog;
-import com.example.mcommnew.user.UsernameDialogListener;
 
-public class MainActivity extends AppCompatActivity implements UsernameDialogListener {
+public class MainActivity extends AppCompatActivity{
 
     private static int ACCESS_COARSE_LOCATION_PERMISSION = 1;
 
@@ -32,10 +30,12 @@ public class MainActivity extends AppCompatActivity implements UsernameDialogLis
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle("MComm");
-        toolbar.setTitleTextColor(getResources().getColor(R.color.colorPrimaryDark));
         setSupportActionBar(toolbar);
         checkPermissions();
+        loadHomeFragment();
     }
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -53,9 +53,6 @@ public class MainActivity extends AppCompatActivity implements UsernameDialogLis
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.changeUsername:
-                openChangeUsernameDialog();
-                break;
             case R.id.newGroup:
                 //TODO: implement this feature
                 break;
@@ -71,11 +68,6 @@ public class MainActivity extends AppCompatActivity implements UsernameDialogLis
 
         }
         return true;
-    }
-
-    private void openChangeUsernameDialog() {
-        UsernameDialog usernameDialog = new UsernameDialog();
-        usernameDialog.show(getSupportFragmentManager(), "change username");
     }
 
     private boolean isWiFiEnabled()
@@ -114,6 +106,11 @@ public class MainActivity extends AppCompatActivity implements UsernameDialogLis
 
     }
 
+    private void loadHomeFragment() {
+        HomeScreenFragment homeScreenFragment = new HomeScreenFragment();
+        getSupportFragmentManager().beginTransaction().replace(R.id.frameContainer, homeScreenFragment).commit();
+    }
+
     private void loadAvailableDevicesFragment()
     {
         AvailableDevicesFragment availableDevices = new AvailableDevicesFragment();
@@ -136,12 +133,5 @@ public class MainActivity extends AppCompatActivity implements UsernameDialogLis
 
             }
         }
-    }
-
-    @Override
-    public void changeUsername(String newUsername) {
-
-        MyWifiP2PManager myWifiP2PManager = new MyWifiP2PManager(this, MainActivity.this);
-        myWifiP2PManager.setUsername(newUsername);
     }
 }

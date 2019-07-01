@@ -2,7 +2,6 @@ package com.example.mcommnew.user;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -15,8 +14,8 @@ import com.example.mcommnew.R;
 
 public class UsernameDialog extends AppCompatDialogFragment {
 
-    private EditText usernameEdit;
-    private UsernameDialogListener usernameDialogListener;
+    private EditText mUsernameEdit;
+    private UsernameDialogListener mUsernameDialogListener;
 
     @NonNull
     @Override
@@ -37,20 +36,17 @@ public class UsernameDialog extends AppCompatDialogFragment {
                 .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        String newUsername = usernameEdit.getText().toString();
-                        usernameDialogListener.changeUsername(newUsername);
+                        String newUsername = mUsernameEdit.getText().toString();
+                        mUsernameDialogListener.changeUsername(newUsername);
                     }
                 });
 
-        usernameEdit = view.findViewById(R.id.changeUsernameEdit);
+        mUsernameEdit = view.findViewById(R.id.changeUsernameEdit);
         return builder.create();
     }
 
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-
-        usernameDialogListener = (UsernameDialogListener) context;
-
+    public void setUsernameDialogListener(UsernameDialogListener usernameDialogListener)
+    {
+        mUsernameDialogListener = usernameDialogListener;
     }
 }

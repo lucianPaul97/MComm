@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.NetworkInfo;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
 import com.example.mcommnew.MyWifiP2PManager;
 
@@ -48,6 +49,8 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
 
 
         }else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)){
+            WifiP2pDevice device = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
+            mWifiP2PManager.setDeviceName(device.deviceName);
 
         }
 

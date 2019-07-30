@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorPrimary"
+    android:padding="16dp"
+    android:layout_marginTop="8dp"
+    android:orientation="vertical">
+
+
+    <TextView
+        android:id="@+id/nameLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Username"
+        android:textColor="@color/colorPrimaryDark"
+        android:textSize="20sp"
+        />
+
+    <RelativeLayout
+        android:id="@+id/usernameLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/nameLabel">
+
+
+        <TextView
+            android:id="@+id/textName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#ffff"
+            android:textSize="16sp"
+            android:layout_marginTop="10dp"
+            android:layout_marginStart="30dp"/>
+
+        <Button
+            android:id="@+id/changeNameButton"
+            android:layout_width="66dp"
+            android:layout_height="34dp"
+            android:layout_alignParentEnd="true"
+            android:background="@color/colorPrimaryDark"
+            android:text="Change"
+            android:textColor="#ffff"
+            android:textSize="10sp"
+
+            />
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/contactsLabel"
+        android:layout_below="@id/usernameLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Recent contacts"
+        android:textColor="@color/colorPrimaryDark"
+        android:textSize="20sp"
+        android:layout_marginTop="16dp"/>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/contactsList"
+        android:layout_width="match_parent"
+        android:layout_height="486dp"
+        android:layout_below="@id/contactsLabel"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="30dp"
+        android:scrollbars="vertical" />
+
+    <Button
+        android:id="@+id/discoverUsersButton"
+        android:layout_width="130dp"
+        android:layout_height="40dp"
+        android:text="Discover users"
+        android:textColor="#ffff"
+        android:layout_marginStart="16dp"
+        android:layout_alignParentBottom="true"
+        android:background="@color/colorPrimaryDark"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/goToGroupButton"
+        android:layout_width="130dp"
+        android:layout_height="40dp"
+        android:text="Go to group"
+        android:textColor="#ffff"
+        android:layout_marginEnd="16dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:background="@color/colorPrimaryDark"
+        android:layout_marginBottom="16dp"/>
+
+
+    <include
+        android:id="@+id/customScreenLoading"
+        layout="@layout/loading_screen" />
+
+
+
+
+</RelativeLayout>

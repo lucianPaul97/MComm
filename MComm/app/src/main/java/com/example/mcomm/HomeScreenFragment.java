@@ -3,9 +3,11 @@ package com.example.mcomm;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.location.LocationManager;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -77,9 +79,14 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
                     break;
                 case R.id.discoverUsersButton:
                     if (isWiFiEnabled()) {
-                        if (isLocationEnabled())
-                        {
-                            loadAvailableDevicesFragment();
+                        if (Build.VERSION.SDK_INT >=26) { //check if devices runs Android Oreo or higher
+                            if (isLocationEnabled()) {
+                                loadAvailableDevicesFragment();
+                            }
+                            else
+                            {
+                                askToEnableLocation();
+                            }
                         }
 
                     } else {
@@ -140,11 +147,42 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
         return wifiManager.isWifiEnabled();
     }
 
-    
     private boolean isLocationEnabled()
     {
         final LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+    private void askToEnableLocation()
+    {
+        //build an alert dialog and ask the user to activate the location
+        AlertDialog.Builder askFoLocationBuilder = new AlertDialog.Builder(getContext());
+        askFoLocationBuilder.setMessage("The application requires that location must be enabled. Would you like to activate now ?");
+        askFoLocationBuilder.setPositiveButton(
+                "Yes",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                        //if Location was enabled, load AvailableDevicesFragment
+                        if (isLocationEnabled())
+                        {
+                            loadAvailableDevicesFragment();
+                        }
+                    }
+                }
+        );
+        askFoLocationBuilder.setNegativeButton(
+                "No",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                }
+        );
+        AlertDialog askForWifi = askFoLocationBuilder.create();
+        askForWifi.show();
     }
 
     private void askToEnableWiFi() {
@@ -159,7 +197,20 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
                     public void onClick(DialogInterface dialog, int which) {
                         wifiManager.setWifiEnabled(true);
                         //if WiFi was enabled, load AvailableDevicesFragment
-                        loadAvailableDevicesFragment();
+//                        loadAvailableDevicesFragment();
+                        if (Build.VERSION.SDK_INT >=26) { //check if devices runs Android Oreo or higher
+                            if (isLocationEnabled()) {
+                                loadAvailableDevicesFragment();
+                            }
+                            else
+                            {
+                                askToEnableLocation();
+                            }
+                        }
+                        else
+                        {
+                            loadAvailableDevicesFragment();
+                        }
                     }
                 }
         );

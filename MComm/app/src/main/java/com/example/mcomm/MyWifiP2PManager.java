@@ -10,6 +10,8 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.widget.Toast;
 
 import com.example.mcomm.available_devices.IAvailableDevicesListener;
+import com.example.mcomm.database.MCommDatabaseHelper;
+import com.example.mcomm.group.IClientsListener;
 import com.example.mcomm.receiver.WifiDirectBroadcastReceiver;
 import com.example.mcomm.user.IUsername;
 
@@ -28,9 +30,9 @@ public class MyWifiP2PManager {
     private WifiDirectBroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
     private IAvailableDevicesListener mAvailableDevicesListener;
+    private IClientsListener mClientsListener;
     private IUsername iUsername;
     private String groupName;
-    private String deviceName;
 
     public MyWifiP2PManager(Activity activity, Context context) {
         mActivity = activity;
@@ -104,9 +106,13 @@ public class MyWifiP2PManager {
         iUsername = iUsernameListener;
     }
 
+    public void setClientsListener(IClientsListener clientsListener) {
+        mClientsListener = clientsListener;
+    }
+
+
     public void setDeviceName(String deviceName) {
         if (iUsername != null) {
-            this.deviceName = deviceName;
             iUsername.setUserName(deviceName);
         }
     }
@@ -125,8 +131,7 @@ public class MyWifiP2PManager {
         }
     }
 
-    public void createGroup()
-    {
+    public void createGroup() {
         mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -153,6 +158,14 @@ public class MyWifiP2PManager {
         for (WifiP2pDevice client : clientsList) {
             clients.add(client.deviceName);
         }
-        mAvailableDevicesListener.onClientsListChanged(clients);
+        if (mClientsListener != null) {
+            mClientsListener.onClientsListChanged(clients);
+        }
     }
+
+    public void deleteClients() {
+        MCommDatabaseHelper dbHelper = new MCommDatabaseHelper(mActivity);
+        dbHelper.deleteAllClients();
+    }
+
 }

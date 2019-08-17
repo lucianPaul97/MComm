@@ -8,12 +8,15 @@ import android.os.IBinder;
 import android.os.StrictMode;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.example.mcomm.MainActivity;
 import com.example.mcomm.R;
-import com.example.mcomm.chat.ChatActivity;
+import com.example.mcomm.database.MCommDatabaseHelper;
+import com.example.mcomm.group.chat.messages.MessageType;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -21,32 +24,21 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static com.example.mcomm.notifications.NotificationManager.CHANNEL_ID;
 
-public class CommunicationService extends Service {
+public class CommunicationService extends Service implements ServiceNotifications{
     private final String TAG = "CommunicationService";
     private Socket mSocket;
     private List<ClientConnectionHandler> clientsList;
-    private List<String> clientsNameList;
-    public static Queue<String> messageQueue;
-    public static Queue<String> clientsQueue;
-    private boolean sendMessages;
-    private boolean sendClients;
+    protected static MCommDatabaseHelper dbHelper;
 
     @Override
     public void onCreate() {
         super.onCreate();
         startInForeground(); //start service in foreground
-        messageQueue = new ConcurrentLinkedQueue<>();
-        clientsQueue = new ConcurrentLinkedQueue<>();
-        clientsNameList = new ArrayList<>();
-        sendMessages = true;
-        sendClients = true;
-
     }
 
     private void startInForeground() {
@@ -66,30 +58,8 @@ public class CommunicationService extends Service {
 
     @Override
     public int onStartCommand(final Intent intent, int flags, int startId) {
-        if (intent.getAction().equals("createService")) {
-            Thread initializeSocketsThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    initializeSocket(intent);
-                }
-            });
-            initializeSocketsThread.start();
-            Thread sendMessagesToAppThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    sendMessagesToApp();
-                }
-            });
-            sendMessagesToAppThread.start();
-        } else if (intent.getAction().equals("broadcastUsers")) {
-            clientsNameList.clear();
-            clientsNameList.addAll(intent.getStringArrayListExtra("clients"));
-        } else {
-            String messageToSend = intent.getExtras().getString("message");
-            write(messageToSend.getBytes());
-        }
+        performAction(intent);
         return START_REDELIVER_INTENT;
-
     }
 
     @Override
@@ -104,13 +74,11 @@ public class CommunicationService extends Service {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            dbHelper.close();
         } else {
             for (int i = 0; i < clientsList.size(); ++i) {
                 clientsList.get(i).closeConnection();
             }
-            sendMessages = false;
-            sendRemainingMessagesToApp();
-            messageQueue = null;
         }
     }
 
@@ -120,117 +88,161 @@ public class CommunicationService extends Service {
         return null;
     }
 
+
+    private void performAction(final Intent intent) {
+        switch (intent.getAction()) {
+            case "createService": //called when the group is created; initializes a server or a client socket, depending if the devices is leader or not
+                Thread initializeSocketsThread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        initializeSocket(intent);
+                    }
+                });
+                initializeSocketsThread.start();
+                break;
+            case "broadcastUsers": //only in leader case; broadcast new users
+                List<String> clientsNameList = new ArrayList<>();
+                clientsNameList.addAll(intent.getStringArrayListExtra("clients"));
+                int clientsCount = dbHelper.getClientsCount();
+                if (clientsCount <= clientsNameList.size()) { //if a client joined the group
+                    for (String clientName : clientsNameList) {
+                        if (!dbHelper.isClientStored(clientName)) {
+                            dbHelper.addClient(clientName);
+                            sendMessageToAllClients(("add:" + clientName).getBytes());
+                        }
+                    }
+                } else { //if a client leaved the group
+                    List<String> dbClients = dbHelper.getAllClients();
+                    for (String dbClient : dbClients) {
+                        if (!clientsNameList.contains(dbClient)) {
+                            dbHelper.deleteClient(dbClient);
+                            sendMessageToAllClients(("remove:" + dbClient).getBytes());
+                        }
+                    }
+                }
+                break;
+            case "message": //for sending messages
+                String message = intent.getExtras().getString("message");
+                String receiver = intent.getExtras().getString("receiver");
+                Date date = new Date(intent.getExtras().getString("date"));
+                //add message to database
+                dbHelper.addMessage(receiver, message, MessageType.SEND.ordinal(), date);
+                JSONObject messageToSend = new JSONObject();
+                //send the message to the other user
+                try {
+                    messageToSend.put("sender", intent.getExtras().getString("sender"));
+                    messageToSend.put("receiver", receiver);
+                    messageToSend.put("message", message);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                if (clientsList != null) //server side
+                {
+                    for (ClientConnectionHandler client : clientsList) {
+                        if (receiver.equals(client.getClientName())) {
+                            sendMessageToClient(messageToSend.toString().getBytes(), client.getSocket());
+                        }
+                    }
+                } else //client side
+                {
+                    sendMessageToClient(messageToSend.toString().getBytes(), mSocket);
+                }
+                break;
+        }
+    }
+
     private void initializeSocket(final Intent intent) {
         boolean isHost = intent.getExtras().getBoolean("isHost");
+        dbHelper = new MCommDatabaseHelper(getApplicationContext());
         if (isHost) {
             try {
                 clientsList = new ArrayList<>();
                 ServerSocket serverSocket = new ServerSocket();
                 serverSocket.setReuseAddress(true);
                 serverSocket.bind(new InetSocketAddress(9000));
+                String leaderName = intent.getExtras().getString("deviceName");
                 while (true) {
-//                    Thread.sleep(5000);
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     Socket clientSocket = serverSocket.accept();
-                    ClientConnectionHandler clientConnectionHandler = new ClientConnectionHandler(clientSocket);
+
+                    ClientConnectionHandler clientConnectionHandler = new ClientConnectionHandler(clientSocket, leaderName, this);
                     clientsList.add(clientConnectionHandler);
                     clientConnectionHandler.start();
 
-                    //broadcast the new list of clients
-                    write("clear".getBytes());
-                    for (String client : clientsNameList) {
-                        write(("client:" + client).getBytes());
-                        Thread.sleep(400); //delay between messages
-                        Log.d("Send: ", client);
+                    //send the list of clients to the new user
+                    List<String> clients = dbHelper.getAllClients();
+                    try {
+                        for (String client : clients) {
+                            Thread.sleep(200);
+                            sendMessageToClient(("client:" + client).getBytes(), clientSocket);
+                        }
+                    } catch (InterruptedException e) {
+                        Log.d(TAG, e.getMessage());
                     }
-
                 }
             } catch (IOException e) {
                 Log.d(TAG, e.getMessage());
-            } catch (InterruptedException e) {
-                Log.d(TAG, e.getMessage());
-
             }
 
         } else {
             String hostAddress = intent.getExtras().getString("hostAddress");
+            mSocket = new Socket();
             try {
-                mSocket = new Socket();
                 mSocket.connect(new InetSocketAddress(hostAddress, 9000), 500);
-                ClientConnectionHandler clientConnectionHandler = new ClientConnectionHandler(mSocket);
-                clientConnectionHandler.start();
-                Thread sendClientsThread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        sendClientsToApp();
-                    }
-                });
-                sendClientsThread.start();
+
             } catch (IOException e) {
-                Log.d(TAG, e.getMessage());
+                try {
+                    mSocket.connect(new InetSocketAddress(hostAddress, 9000), 500);
+                } catch (IOException ex) {
+                    Log.d(TAG, ex.getMessage());
+
+                }
             }
-        }
+            ClientConnectionHandler clientConnectionHandler = new ClientConnectionHandler(mSocket, null, null);
+            clientConnectionHandler.start();
 
-    }
-
-    private void sendMessagesToApp() {
-        while (sendMessages) {
-            if (!messageQueue.isEmpty()) {
-                String messageToSend = messageQueue.poll();
-                sendMessage(messageToSend);
-            }
+            //send your name to leader
+            String clientName = intent.getExtras().getString("deviceName");
+            sendMessageToClient(("setName:" + clientName).getBytes(), mSocket);
         }
     }
 
-    private void sendRemainingMessagesToApp() {
-        while (!messageQueue.isEmpty()) {
-            String messageToSend = messageQueue.poll();
-            sendMessage(messageToSend);
-        }
-    }
-
-    private void sendMessage(String messageToSend) {
-        Intent intent = new Intent(getApplicationContext(), ChatActivity.class);
-        intent.setAction("messageReceiver");
-        intent.putExtra("message", messageToSend);
-        //send the received message to chat activity
-        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
-    }
-
-    private void sendClientsToApp() {
-        while (sendClients) {
-            if (!clientsQueue.isEmpty()) {
-                String client = clientsQueue.poll();
-                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                intent.setAction("clientReceiver");
-                intent.putExtra("client", client);
-                //send the received client to group activity
-                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
-            }
-        }
-    }
-
-
-    private void write(byte[] bytes) {
+    private void sendMessageToClient(byte[] bytes, Socket socket) {
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
                 .permitAll().build();
         StrictMode.setThreadPolicy(policy);
-        OutputStream outputStream;
         try {
-
-            if (clientsList != null) {
-
-                for (int i = 0; i < clientsList.size(); ++i) {
-                    outputStream = clientsList.get(i).getSocket().getOutputStream();
-                    outputStream.flush();
-                    outputStream.write(bytes);
-                }
-            } else {
-                outputStream = mSocket.getOutputStream();
-                outputStream.flush();
-                outputStream.write(bytes);
-            }
+            OutputStream outputStream = socket.getOutputStream();
+            outputStream.flush();
+            outputStream.write(bytes);
         } catch (IOException e) {
-            Log.d(TAG, e.toString());
+            e.printStackTrace();
+        }
+    }
+
+    private void sendMessageToAllClients(byte[] bytes) {
+        for (ClientConnectionHandler client : clientsList) {
+            sendMessageToClient(bytes, client.getSocket());
+        }
+    }
+
+    @Override
+    public void onNewMessageToRoute(JSONObject message) {
+        try {
+            String receiver = message.getString("receiver");
+            for (ClientConnectionHandler client: clientsList)
+            {
+                if (client.getClientName().equals(receiver))
+                {
+                    sendMessageToClient(message.toString().getBytes(), client.getSocket());
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
     }
 }

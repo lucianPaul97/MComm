@@ -25,7 +25,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.example.mcomm.chat.ChatActivity" />
+        <activity android:name=".group.chat.ChatActivity" />
         <service android:name="com.example.mcomm.service.CommunicationService"/>
     </application>
 

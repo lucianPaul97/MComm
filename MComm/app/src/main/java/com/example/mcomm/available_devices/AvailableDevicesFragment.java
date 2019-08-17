@@ -1,6 +1,7 @@
 package com.example.mcomm.available_devices;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -10,6 +11,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -20,7 +22,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.mcomm.GroupFragment;
+import com.example.mcomm.group.GroupFragment;
 import com.example.mcomm.HomeScreenFragment;
 import com.example.mcomm.MainActivity;
 import com.example.mcomm.MyWifiP2PManager;
@@ -97,7 +99,11 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
         @Override
         public void onClick(View view) {
             HomeScreenFragment homeScreenFragment = new HomeScreenFragment();
-            getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.frameContainer, homeScreenFragment).commit();
+            FragmentTransaction fragmentTransaction = getActivity().getSupportFragmentManager().beginTransaction();
+            fragmentTransaction.setCustomAnimations(R.anim.enter_from_top, R.anim.exit_to_top);
+            fragmentTransaction.addToBackStack(null);
+            fragmentTransaction.replace(R.id.frameContainer, homeScreenFragment);
+            fragmentTransaction.commit();
         }
     };
 
@@ -130,7 +136,7 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
             p2PManager.getWiFiP2PManager().connect(p2PManager.getWiFiP2PChannel(), config, new WifiP2pManager.ActionListener() {
                 @Override
                 public void onSuccess() {
-                    Toast.makeText(getActivity(), "Connecting to " + device.deviceName, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "Connecting to " + device.deviceName, Toast.LENGTH_LONG).show();
                 }
 
                 @Override
@@ -161,21 +167,17 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
                         groupOwner = p2PManager.getGroupName();
                     }
                     GroupFragment groupFragment = new GroupFragment();
-                    Bundle fragmentParameters = new Bundle();
-                    fragmentParameters.putString("groupName", groupOwner);
-                    fragmentParameters.putBoolean("isHost", isHost);
-                    fragmentParameters.putString("hostAddress", groupOwnerAddress.getHostAddress());
-                    groupFragment.setArguments(fragmentParameters);
+                    SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putBoolean("isHost", isHost);
+                    editor.putString("groupOwner", groupOwner);
+                    editor.putString("hostAddress", groupOwnerAddress.getHostAddress());
+                    editor.apply();
                     getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.frameContainer, groupFragment).commit();
                 }
             });
             thread.start();
         }
 
-    }
-
-    @Override
-    public void onClientsListChanged(List<String> clients) {
-        //not implementing here
     }
 }

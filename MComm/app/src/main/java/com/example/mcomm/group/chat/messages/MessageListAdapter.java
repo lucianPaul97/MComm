@@ -1,4 +1,4 @@
-package com.example.mcomm.chat.messages;
+package com.example.mcomm.group.chat.messages;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -18,8 +18,8 @@ public class MessageListAdapter extends RecyclerView.Adapter {
     private Context mContext;
     private List<Message> mMessageList;
 
-    private static final int VIEW_TYPE_MESSAGE_SENT = 1;
-    private static final int VIEW_TYPE_MESSAGE_RECEIVED = 2;
+    private static final int VIEW_TYPE_MESSAGE_SENT = 0;
+    private static final int VIEW_TYPE_MESSAGE_RECEIVED = 1;
 
     public MessageListAdapter(Context context) {
         this.mContext = context;
@@ -56,7 +56,7 @@ public class MessageListAdapter extends RecyclerView.Adapter {
     public int getItemViewType(int position) {
         Message message = mMessageList.get(position);
 
-        if (message.messageType == VIEW_TYPE_MESSAGE_SENT) {
+        if (message.messageType.ordinal() == VIEW_TYPE_MESSAGE_SENT) {
             // If the current user is the sender of the message
             return VIEW_TYPE_MESSAGE_SENT;
         } else {
@@ -85,5 +85,11 @@ public class MessageListAdapter extends RecyclerView.Adapter {
     {
         mMessageList.add(message);
         notifyItemInserted(mMessageList.size() - 1);
+    }
+
+    public void clearScreen()
+    {
+        mMessageList.clear();
+        notifyDataSetChanged();
     }
 }

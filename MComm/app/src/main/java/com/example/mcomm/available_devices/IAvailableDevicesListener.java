@@ -10,5 +10,4 @@ public interface IAvailableDevicesListener {
     void onPeersDiscoveryStarted(boolean successfullyStarted);
     void onAvailableDevicesChanged(Collection<WifiP2pDevice> peers);
     void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo);
-    void onClientsListChanged(List<String> clients);
 }

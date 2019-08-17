@@ -1,39 +1,44 @@
-package com.example.mcomm;
+package com.example.mcomm.group;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pInfo;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.example.mcomm.HomeScreenFragment;
+import com.example.mcomm.MainActivity;
+import com.example.mcomm.MyWifiP2PManager;
+import com.example.mcomm.R;
 import com.example.mcomm.available_devices.DeviceListAdapter;
-import com.example.mcomm.available_devices.IAvailableDevicesListener;
+import com.example.mcomm.available_devices.ItemClickListener;
+import com.example.mcomm.database.ClientsTableListener;
+import com.example.mcomm.database.MCommDatabaseHelper;
+import com.example.mcomm.group.chat.ChatActivity;
 import com.example.mcomm.service.CommunicationService;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
-public class GroupFragment extends Fragment implements IAvailableDevicesListener {
+public class GroupFragment extends Fragment implements IClientsListener, ClientsTableListener, ItemClickListener {
 
 
     private DeviceListAdapter deviceListAdapter;
     private MyWifiP2PManager p2PManager;
     private List<String> clientsList;
+    private  MCommDatabaseHelper databaseHelper;
 
     @Nullable
     @Override
@@ -48,6 +53,12 @@ public class GroupFragment extends Fragment implements IAvailableDevicesListener
         ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         MainActivity.toolbar.setNavigationOnClickListener(navigationClickListener);
         if (MainActivity.isJoinedToGroup) {
+            //get shared preferences
+            SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+            boolean isHost = sharedPreferences.getBoolean("isHost", false);
+            String groupOwner = sharedPreferences.getString("groupOwner", "");
+            String hostAddress = sharedPreferences.getString("hostAddress", "");
+
             View loadingScreen = view.findViewById(R.id.customScreenLoading);
             loadingScreen.setVisibility(View.INVISIBLE);
             TextView nameLabel = view.findViewById(R.id.nameLabel);
@@ -55,18 +66,25 @@ public class GroupFragment extends Fragment implements IAvailableDevicesListener
             TextView contactsLabel = view.findViewById(R.id.contactsLabel);
             contactsLabel.setText("Group members");
             TextView name = view.findViewById(R.id.textName);
-            name.setText(getArguments().getString("groupName"));
+            name.setText(groupOwner);
             Button changeName = view.findViewById(R.id.changeNameButton);
             changeName.setVisibility(View.INVISIBLE);
             clientsList = new ArrayList<>();
             RecyclerView clientsList = view.findViewById(R.id.contactsList);
             clientsList.setLayoutManager(new LinearLayoutManager(getActivity()));
             deviceListAdapter = new DeviceListAdapter(new ArrayList<String>());
+            deviceListAdapter.setOnItemClickListener(this);
             clientsList.setAdapter(deviceListAdapter);
             p2PManager = new MyWifiP2PManager(getActivity(), getContext());
-            p2PManager.setAvailableDevicesListener(this);
+            p2PManager.setClientsListener(this);
+
+            //open database connection
+            databaseHelper = new MCommDatabaseHelper(getContext());
+            if (!isHost) {
+                databaseHelper.setClientsTableListener(this);
+            }
             //start the service
-            startCommunicationService(getArguments().getBoolean("isHost"), getArguments().getString("hostAddress"));
+            startCommunicationService(isHost, hostAddress);
         } else {
             view.findViewById(R.id.loadingBar).setVisibility(View.INVISIBLE);
             TextView loadingMessage = view.findViewById(R.id.loadingMessage);
@@ -78,11 +96,10 @@ public class GroupFragment extends Fragment implements IAvailableDevicesListener
     @Override
     public void onStop() {
         super.onStop();
+        databaseHelper.setClientsTableListener(null);
         if (p2PManager != null) {
             p2PManager.unregisterWifiReceiver();
         }
-        if (clientsReceiver != null)
-            LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(clientsReceiver);
     }
 
     @Override
@@ -91,31 +108,12 @@ public class GroupFragment extends Fragment implements IAvailableDevicesListener
         if (p2PManager != null) {
             p2PManager.registerWifiReceiver();
         }
-        if (clientsReceiver != null) {
-            LocalBroadcastManager.getInstance(getActivity()).registerReceiver(clientsReceiver, new IntentFilter("clientReceiver"));
-        }
-    }
-
-
-    @Override
-    public void onPeersDiscoveryStarted(boolean successfullyStarted) {
-        // not implementing here
-    }
-
-    @Override
-    public void onAvailableDevicesChanged(Collection<WifiP2pDevice> peers) {
-        // not implementing here
-
-    }
-
-    @Override
-    public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
-        // not implementing here
-
     }
 
     @Override
     public void onClientsListChanged(List<String> clients) {
+        clientsList.clear();
+        clientsList.addAll(clients);
         deviceListAdapter.updateList(clients);
         broadcastUsers(clients);
     }
@@ -124,7 +122,11 @@ public class GroupFragment extends Fragment implements IAvailableDevicesListener
         @Override
         public void onClick(View view) {
             HomeScreenFragment homeScreenFragment = new HomeScreenFragment();
-            getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.frameContainer, homeScreenFragment).commit();
+            FragmentTransaction fragmentTransaction = getActivity().getSupportFragmentManager().beginTransaction();
+            fragmentTransaction.setCustomAnimations(R.anim.enter_from_top, R.anim.exit_to_top);
+            fragmentTransaction.addToBackStack(null);
+            fragmentTransaction.replace(R.id.frameContainer, homeScreenFragment);
+            fragmentTransaction.commit();
         }
     };
 
@@ -133,6 +135,7 @@ public class GroupFragment extends Fragment implements IAvailableDevicesListener
         intent.setAction("createService");
         intent.putExtra("isHost", isHost);
         intent.putExtra("hostAddress", hostAddress);
+        intent.putExtra("deviceName", MainActivity.deviceName);
         getActivity().startService(intent);
     }
 
@@ -144,42 +147,43 @@ public class GroupFragment extends Fragment implements IAvailableDevicesListener
         getActivity().startService(intent);
     }
 
-    private BroadcastReceiver clientsReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String receivedClient = intent.getStringExtra("client");
-            if (receivedClient != null) {
-                if (receivedClient.equals("clear")) {
-                    clientsList.clear();
-                } else {
-                    if (!receivedClient.equals(MainActivity.deviceName)) {
-                        clientsList.add(receivedClient);
-                    }
+    @Override
+    public void onClientAdded(String newClients) {
+        if (!newClients.equals(MainActivity.deviceName)) {
+            clientsList.add(newClients);
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    deviceListAdapter.updateList(clientsList);
                 }
-                deviceListAdapter.updateList(clientsList);
-            }
+            });
+            Log.d("Client added", newClients);
         }
-    };
+    }
 
-//    ItemClickListener itemClickListener = new ItemClickListener() {
-//        @Override
-//        public void onItemClick(int itemPosition) {
-//            final WifiP2pDevice device = peers.get(itemPosition);
-//            WifiP2pConfig config = new WifiP2pConfig();
-//            config.deviceAddress = device.deviceAddress;
-//            p2PManager.getWiFiP2PManager().connect(p2PManager.getWiFiP2PChannel(), config, new WifiP2pManager.ActionListener() {
-//                @Override
-//                public void onSuccess() {
-//                    Toast.makeText(getActivity(), "Connecting to " + device.deviceName, Toast.LENGTH_SHORT).show();
-//                }
-//
-//                @Override
-//                public void onFailure(int i) {
-//                    Toast.makeText(getActivity(), "Failed to connect with " + device.deviceName, Toast.LENGTH_SHORT).show();
-//                }
-//            });
-//        }
-//    };
+    @Override
+    public void onClientDeleted(String client) {
+        if (clientsList.contains(client)) {
+
+            clientsList.remove(client);
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    deviceListAdapter.updateList(clientsList);
+                }
+            });
+            Log.d("Client deleted", client);
+        }
+    }
+
+    @Override
+    public void onItemClick(int itemPosition) {
+
+        String chatSelectedUser = clientsList.get(itemPosition);
+        Intent intent = new Intent(getActivity(), ChatActivity.class);
+        intent.putExtra("chatSelectedUser", chatSelectedUser);
+        startActivity(intent);
+    }
 }
 
 

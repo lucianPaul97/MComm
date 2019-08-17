@@ -4,12 +4,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
 import com.example.mcomm.MyWifiP2PManager;
+import com.example.mcomm.database.MCommDatabaseHelper;
 
 public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
     private WifiP2pManager mManager;
@@ -28,6 +30,12 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
+            int wifiState = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
+            if (wifiState == WifiP2pManager.WIFI_P2P_STATE_DISABLED) //if wifi is disabled
+            {
+                //delete all users from database, because you're disconnected from WiFi P2P Direct
+                mWifiP2PManager.deleteClients();
+            }
 
         } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
             if (mManager != null) {
@@ -46,7 +54,9 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
             try {
 //                mManager.requestGroupInfo(mChannel, mWifiP2PManager.groupInfoListener);
                 mWifiP2PManager.setGroupName(wifiP2pGroup.getOwner().deviceName);
-                mWifiP2PManager.setClientsList(wifiP2pGroup.getClientList());
+                if (!wifiP2pGroup.getClientList().isEmpty()) {
+                    mWifiP2PManager.setClientsList(wifiP2pGroup.getClientList());
+                }
             } catch (NullPointerException e) {
                 Log.d(TAG, e.getMessage());
             }

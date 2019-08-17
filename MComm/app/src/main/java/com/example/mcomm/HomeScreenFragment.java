@@ -3,12 +3,15 @@ package com.example.mcomm;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.location.LocationManager;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mcomm.available_devices.AvailableDevicesFragment;
+import com.example.mcomm.group.GroupFragment;
 import com.example.mcomm.user.IUsername;
 import com.example.mcomm.user.CustomDialog;
 import com.example.mcomm.user.CustomDialogListener;
@@ -73,7 +77,11 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
                     break;
                 case R.id.discoverUsersButton:
                     if (isWiFiEnabled()) {
-                    loadAvailableDevicesFragment();
+                        if (isLocationEnabled())
+                        {
+                            loadAvailableDevicesFragment();
+                        }
+
                     } else {
                         askToEnableWiFi();
                     }
@@ -87,6 +95,9 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
 
     private void openChangeUsernameDialog() {
         CustomDialog usernameDialog = new CustomDialog();
+        Bundle arguments = new Bundle();
+        arguments.putString("intent", "changeUsername");
+        usernameDialog.setArguments(arguments);
         usernameDialog.setUsernameDialogListener(this);
         usernameDialog.show(getActivity().getSupportFragmentManager(), "change username");
     }
@@ -129,6 +140,13 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
         return wifiManager.isWifiEnabled();
     }
 
+    
+    private boolean isLocationEnabled()
+    {
+        final LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
     private void askToEnableWiFi() {
         final WifiManager wifiManager = (WifiManager) getActivity().getSystemService(Context.WIFI_SERVICE);
         //build an alert dialog and ask the user to activate te wifi
@@ -159,18 +177,32 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
 
     }
 
+    private FragmentTransaction addAnimationToTransaction ()
+    {
+        FragmentTransaction fragmentTransaction = getActivity().getSupportFragmentManager().beginTransaction();
+        fragmentTransaction.setCustomAnimations(R.anim.enter_from_top, R.anim.exit_to_top, R.anim.enter_from_top, R.anim.exit_to_top);
+        fragmentTransaction.addToBackStack(null);
+        return fragmentTransaction;
+    }
+
+
     private void loadAvailableDevicesFragment()
     {
         AvailableDevicesFragment availableDevices = new AvailableDevicesFragment();
         Bundle fragmentParameters = new Bundle();
         fragmentParameters.putString("messageToDisplay", "Discover users");
         availableDevices.setArguments(fragmentParameters);
-        getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.frameContainer, availableDevices).commit();
+        FragmentTransaction fragmentTransaction = addAnimationToTransaction();
+        fragmentTransaction.replace(R.id.frameContainer, availableDevices);
+        fragmentTransaction.commit();
     }
 
     private void loadGroupFragment()
     {
         GroupFragment groupFragment = new GroupFragment();
-        getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.frameContainer, groupFragment).commit();
+        FragmentTransaction fragmentTransaction = addAnimationToTransaction();
+        fragmentTransaction.replace(R.id.frameContainer, groupFragment);
+        fragmentTransaction.commit();
     }
+
 }

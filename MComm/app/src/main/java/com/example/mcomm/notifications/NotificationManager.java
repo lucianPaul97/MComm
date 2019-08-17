@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.os.Build;
 
 public class NotificationManager extends Application {
+
     public static final String CHANNEL_ID = "MComm_Service";
     @Override
     public void onCreate() {
@@ -17,7 +18,7 @@ public class NotificationManager extends Application {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,
-                    "MComm Serice",
+                    "MComm Service",
                     android.app.NotificationManager.IMPORTANCE_LOW
 
             );

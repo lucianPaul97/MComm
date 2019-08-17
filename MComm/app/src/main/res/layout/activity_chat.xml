@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".chat.ChatActivity"
+    tools:context=".group.chat.ChatActivity"
     android:background="@color/colorPrimary">
 
 
@@ -19,14 +19,13 @@
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/messageHistory"
+        android:layout_width="403dp"
+        android:layout_height="607dp"
+        android:layout_above="@+id/layout_chatbox"
         android:layout_below="@id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
-        android:layout_marginBottom="8dp"
-        android:scrollbars="vertical"
-        />
+        android:scrollbars="vertical" />
 
     <!-- A horizontal line between the chatbox and RecyclerView -->
     <View

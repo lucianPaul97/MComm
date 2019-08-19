@@ -18,6 +18,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -42,6 +43,7 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
     private MyWifiP2PManager p2PManager;
     private DeviceListAdapter deviceListAdapter;
     private List<WifiP2pDevice> peers;
+    private ImageView retry;
 
     @Nullable
     @Override
@@ -57,6 +59,10 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
         message.setText(getArguments().getString("messageToDisplay"));
         loadingScreen = view.findViewById(R.id.deviceDiscoveryLoading);
         progressBar = view.findViewById(R.id.loadingBar);
+        retry = view.findViewById(R.id.retryImage);
+        retry.setVisibility(View.INVISIBLE);
+        retry.setClickable(true);
+        retry.setOnClickListener(clickListener);
         availableDevicesText = view.findViewById(R.id.availableDevices);
         availableDevicesText.setVisibility(View.INVISIBLE);
         RecyclerView deviceList = view.findViewById(R.id.deviceList);
@@ -111,7 +117,8 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
     public void onPeersDiscoveryStarted(boolean successfullyStarted) {
         if (!successfullyStarted) {
             progressBar.setVisibility(View.INVISIBLE);
-            message.setText("Couldn't find any device");
+            message.setText("Couldn't find any user");
+            retry.setVisibility(View.VISIBLE);
         }
     }
 
@@ -126,6 +133,20 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
         }
         deviceListAdapter.updateList(deviceNameList);
     }
+
+    View.OnClickListener clickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (v.getId() == R.id.retryImage)
+            {
+                loadingScreen.setVisibility(View.VISIBLE);
+                progressBar.setVisibility(View.VISIBLE);
+                retry.setVisibility(View.INVISIBLE);
+                message.setText("Discovering users");
+                checkForAvailableDevices();
+            }
+        }
+    };
 
     ItemClickListener itemClickListener = new ItemClickListener() {
         @Override
@@ -149,7 +170,7 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
 
     @Override
     public void onConnectionInfoAvailable(final WifiP2pInfo wifiP2pInfo) {
-        //      start group fragment
+        //start group fragment
         if (!MainActivity.isJoinedToGroup) {
             MainActivity.isJoinedToGroup = true;
             Thread thread = new Thread(new Runnable() {

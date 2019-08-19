@@ -168,4 +168,9 @@ public class MyWifiP2PManager {
         dbHelper.deleteAllClients();
     }
 
+    public void requestConnectionInfo(WifiP2pManager.ConnectionInfoListener listener)
+    {
+        mManager.requestConnectionInfo(mChannel, listener);
+    }
+
 }

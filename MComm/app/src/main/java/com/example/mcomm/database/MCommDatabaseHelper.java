@@ -105,6 +105,7 @@ public class MCommDatabaseHelper extends SQLiteOpenHelper {
         while (cursor.moveToNext()) {
             clients.add(cursor.getString(cursor.getColumnIndex(MCommDatabaseContract.ClientsTable.COLUMN_NAME_CLIENT)));
         }
+        cursor.close();
         return clients;
     }
 
@@ -118,6 +119,7 @@ public class MCommDatabaseHelper extends SQLiteOpenHelper {
                     MessageType.valueOf(cursor.getInt(cursor.getColumnIndex(MCommDatabaseContract.MessagesTable.COLUMN_NAME_MESSAGE_TYPE))),
                     cursor.getString(cursor.getColumnIndex(MCommDatabaseContract.MessagesTable.COLUMN_NAME_DATE))));
         }
+        cursor.close();
         return messages;
     }
 
@@ -130,6 +132,26 @@ public class MCommDatabaseHelper extends SQLiteOpenHelper {
         }
         cursor.close();
         return (result > 0);
+    }
+
+    public List<String> getRecentContact() //the method returns a list of contacts you have had a conversation with in the last 5 days
+    {
+        List<String> recentContact = new ArrayList<>();
+        String query = String.format("SELECT %s FROM %s WHERE %s > date(\'now\', \'-5 days\') GROUP BY %s;", MCommDatabaseContract.MessagesTable.COLUMN_NAME_CONTACT, MCommDatabaseContract.MessagesTable.TABLE_NAME,
+                MCommDatabaseContract.MessagesTable.COLUMN_NAME_DATE, MCommDatabaseContract.MessagesTable.COLUMN_NAME_CONTACT);
+        Cursor cursor = dbReadable.rawQuery(query, null);
+        while(cursor.moveToNext())
+        {
+            recentContact.add(cursor.getString(cursor.getColumnIndex(MCommDatabaseContract.MessagesTable.COLUMN_NAME_CONTACT)));
+        }
+        query = query.replace(">", "<");
+        cursor = dbReadable.rawQuery(query, null);
+        while(cursor.moveToNext())
+        {
+            recentContact.add(cursor.getString(cursor.getColumnIndex(MCommDatabaseContract.MessagesTable.COLUMN_NAME_CONTACT)));
+        }
+        cursor.close();
+        return recentContact;
     }
 
     public void setClientsTableListener(ClientsTableListener clientsTableListener) {

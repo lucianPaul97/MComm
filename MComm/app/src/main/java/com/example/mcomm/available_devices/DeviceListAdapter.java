@@ -73,6 +73,11 @@ public class DeviceListAdapter extends RecyclerView.Adapter<DeviceListAdapter.My
         this.devices.addAll(deviceList);
         notifyDataSetChanged();
     }
+
+    public List<String> getDevices()
+    {
+        return devices;
+    }
 }
 
 

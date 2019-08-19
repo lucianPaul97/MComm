@@ -1,6 +1,9 @@
 package com.example.mcomm.group.chat;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -55,6 +58,11 @@ public class ChatActivity extends AppCompatActivity implements MessagesTableList
         super.onStart();
         messageListAdapter.clearScreen();
         loadMessages();
+        if (!databaseHelper.isClientStored(contactName)) //check if this user is part of the same group; otherwise show only the conversation
+        {
+            findViewById(R.id.typeMessage).setVisibility(View.INVISIBLE);
+            findViewById(R.id.sendButton).setVisibility(View.INVISIBLE);
+        }
     }
 
     private void initViews(String contactName) {

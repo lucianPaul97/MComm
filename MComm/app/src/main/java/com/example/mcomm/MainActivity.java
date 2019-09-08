@@ -1,6 +1,8 @@
 package com.example.mcomm;
 
 import android.Manifest;
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.pm.PackageManager;
 
 import android.support.v4.app.ActivityCompat;
@@ -12,6 +14,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
+import com.example.mcomm.service.CommunicationService;
 import com.example.mcomm.user.CustomDialog;
 import com.example.mcomm.user.CustomDialogListener;
 
@@ -91,5 +94,7 @@ public class MainActivity extends AppCompatActivity implements CustomDialogListe
     public void changeUsername(String newUsername) {
         //not implementing here
     }
+
+
 
 }

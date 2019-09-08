@@ -1,37 +1,47 @@
 package com.example.mcomm;
 
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.LocationManager;
 import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.example.mcomm.available_devices.AvailableDevicesFragment;
+import com.example.mcomm.available_devices.DeviceListAdapter;
+import com.example.mcomm.available_devices.ItemClickListener;
+import com.example.mcomm.database.MCommDatabaseHelper;
 import com.example.mcomm.group.GroupFragment;
+import com.example.mcomm.group.chat.ChatActivity;
+import com.example.mcomm.service.CommunicationService;
 import com.example.mcomm.user.IUsername;
 import com.example.mcomm.user.CustomDialog;
 import com.example.mcomm.user.CustomDialogListener;
+import java.util.ArrayList;
 
 public class HomeScreenFragment extends Fragment implements CustomDialogListener, IUsername {
 
     private TextView username;
     private MyWifiP2PManager p2PManager;
+    private DeviceListAdapter deviceListAdapter;
 
     @Nullable
     @Override
@@ -55,6 +65,12 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
         goToGroup.setOnClickListener(onClickListener);
         p2PManager = new MyWifiP2PManager(getActivity(), getContext());
         p2PManager.setUsernameListener(this);
+
+        deviceListAdapter = new DeviceListAdapter(new ArrayList<String>());
+        deviceListAdapter.setOnItemClickListener(itemClickListener);
+        RecyclerView recentConversationsList = view.findViewById(R.id.contactsList);
+        recentConversationsList.setLayoutManager(new LinearLayoutManager(getActivity()));
+        recentConversationsList.setAdapter(deviceListAdapter);
     }
 
     @Override
@@ -67,6 +83,15 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
     public void onPause() {
         super.onPause();
         p2PManager.unregisterWifiReceiver();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        MCommDatabaseHelper dbHelper = new MCommDatabaseHelper(getContext());
+        deviceListAdapter.updateList(dbHelper.getRecentContact());
+        p2PManager.requestConnectionInfo(connectionInfo);
+//        shouldServiceBeStarted();
     }
 
     View.OnClickListener onClickListener  = new View.OnClickListener() {
@@ -87,6 +112,10 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
                             {
                                 askToEnableLocation();
                             }
+                        }
+                        else
+                        {
+                            loadAvailableDevicesFragment();
                         }
 
                     } else {
@@ -131,6 +160,15 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
         @Override
         public void onFailure(int i) {
             Toast.makeText(getActivity(), "WiFi must be enabled to perform this action", Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    ItemClickListener itemClickListener = new ItemClickListener() {
+        @Override
+        public void onItemClick(int itemPosition) {
+            Intent intent = new Intent(getActivity(), ChatActivity.class);
+            intent.putExtra("chatSelectedUser", deviceListAdapter.getDevices().get(itemPosition));
+            startActivity(intent);
         }
     };
 
@@ -228,6 +266,18 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
 
     }
 
+    WifiP2pManager.ConnectionInfoListener connectionInfo = new WifiP2pManager.ConnectionInfoListener() {
+        @Override
+        public void onConnectionInfoAvailable(WifiP2pInfo info) {
+
+            if(info.groupFormed)
+            {
+                shouldServiceBeStarted();
+            }
+        }
+    };
+
+
     private FragmentTransaction addAnimationToTransaction ()
     {
         FragmentTransaction fragmentTransaction = getActivity().getSupportFragmentManager().beginTransaction();
@@ -254,6 +304,33 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
         FragmentTransaction fragmentTransaction = addAnimationToTransaction();
         fragmentTransaction.replace(R.id.frameContainer, groupFragment);
         fragmentTransaction.commit();
+    }
+
+    private void shouldServiceBeStarted()
+    {
+        MCommDatabaseHelper dbHelper = new MCommDatabaseHelper(getContext());
+        //start the service if is not started already
+        if (!isServiceRunning()) //check if server is started
+        {
+            SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+            Intent intent = new Intent(getContext(), CommunicationService.class);
+            intent.setAction("createService");
+            intent.putExtra("isHost", sharedPreferences.getBoolean("isHost", false));
+            intent.putExtra("hostAddress", sharedPreferences.getString("hostAddress", ""));
+            intent.putExtra("deviceName", MainActivity.deviceName);
+            getActivity().startService(intent);
+        }
+    }
+
+    private boolean isServiceRunning()
+    {
+        ActivityManager manager = (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (CommunicationService.class.toString().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

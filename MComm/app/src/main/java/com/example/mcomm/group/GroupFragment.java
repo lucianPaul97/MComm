@@ -1,5 +1,6 @@
 package com.example.mcomm.group;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -54,9 +55,9 @@ public class GroupFragment extends Fragment implements IClientsListener, Clients
         view.findViewById(R.id.goToGroupButton).setVisibility(View.INVISIBLE);
         ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         MainActivity.toolbar.setNavigationOnClickListener(navigationClickListener);
-        if (MainActivity.isJoinedToGroup) {
+        SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+        if (sharedPreferences.getBoolean("isGroupFormed", false)) {
             //get shared preferences
-            SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
             boolean isHost = sharedPreferences.getBoolean("isHost", false);
             String groupOwner = sharedPreferences.getString("groupOwner", "");
             String hostAddress = sharedPreferences.getString("hostAddress", "");
@@ -86,7 +87,12 @@ public class GroupFragment extends Fragment implements IClientsListener, Clients
                 databaseHelper.setClientsTableListener(this);
             }
             //start the service
-            startCommunicationService(isHost, hostAddress);
+            if (!isCommunicationServiceRunning()) {
+                startCommunicationService(isHost, hostAddress);
+            }else
+            {
+                deviceListAdapter.updateList(databaseHelper.getAllClients());
+            }
         } else {
             view.findViewById(R.id.loadingBar).setVisibility(View.INVISIBLE);
             TextView loadingMessage = view.findViewById(R.id.loadingMessage);
@@ -137,7 +143,7 @@ public class GroupFragment extends Fragment implements IClientsListener, Clients
 
     private void startCommunicationService(boolean isHost, @Nullable String hostAddress) {
         Intent intent = new Intent(getActivity(), CommunicationService.class);
-        intent.setAction("createService");
+        intent.setAction("initialize");
         intent.putExtra("isHost", isHost);
         intent.putExtra("hostAddress", hostAddress);
         intent.putExtra("deviceName", MainActivity.deviceName);
@@ -154,7 +160,7 @@ public class GroupFragment extends Fragment implements IClientsListener, Clients
 
     @Override
     public void onClientAdded(String newClients) {
-        if (!newClients.equals(MainActivity.deviceName)) {
+        if (!newClients.equals(MainActivity.deviceName) && !clientsList.contains(newClients)) {
             clientsList.add(newClients);
             getActivity().runOnUiThread(new Runnable() {
                 @Override
@@ -188,6 +194,19 @@ public class GroupFragment extends Fragment implements IClientsListener, Clients
         Intent intent = new Intent(getActivity(), ChatActivity.class);
         intent.putExtra("chatSelectedUser", chatSelectedUser);
         startActivity(intent);
+    }
+
+    private boolean isCommunicationServiceRunning()
+    {
+        ActivityManager manager = (ActivityManager)getActivity().getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (CommunicationService.class.getName().equals(service.service.getClassName())) {
+                Log.i("Service already","running");
+                return true;
+            }
+        }
+        Log.i("Service not","running");
+        return false;
     }
 }
 

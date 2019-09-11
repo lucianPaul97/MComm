@@ -190,6 +190,7 @@ public class AvailableDevicesFragment extends Fragment implements IAvailableDevi
                     GroupFragment groupFragment = new GroupFragment();
                     SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
                     SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putBoolean("isGroupFormed", wifiP2pInfo.groupFormed);
                     editor.putBoolean("isHost", isHost);
                     editor.putString("groupOwner", groupOwner);
                     editor.putString("hostAddress", groupOwnerAddress.getHostAddress());

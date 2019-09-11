@@ -1,6 +1,7 @@
 package com.example.mcomm.service;
 import android.util.Log;
 
+import com.example.mcomm.MainActivity;
 import com.example.mcomm.group.chat.messages.MessageType;
 
 import org.json.JSONException;
@@ -52,10 +53,13 @@ public class ClientConnectionHandler extends Thread {
     {
         if (receivedMessage.contains("client:") || receivedMessage.contains("ient:")) //second check is performed because malformed messages can be received
         {
-            CommunicationService.dbHelper.addClient(receivedMessage.replace("client:", ""));
+            if (!MainActivity.deviceName.equals(receivedMessage.replace("client:", ""))) {
+                CommunicationService.dbHelper.addClient(receivedMessage.replace("client:", ""));
+            }
         }
         else if (receivedMessage.contains("add:")){
-            CommunicationService.dbHelper.addClient(receivedMessage.replace("add:", ""));
+
+                CommunicationService.dbHelper.addClient(receivedMessage.replace("add:", ""));
         }
         else if(receivedMessage.contains("remove:"))
         {

@@ -91,7 +91,7 @@ public class CommunicationService extends Service implements ServiceNotification
 
     private void performAction(final Intent intent) {
         switch (intent.getAction()) {
-            case "createService": //called when the group is created; initializes a server or a client socket, depending if the devices is leader or not
+            case "initialize": //called when the group is created; initializes a server or a client socket, depending if the devices is leader or not
                 Thread initializeSocketsThread = new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -136,11 +136,12 @@ public class CommunicationService extends Service implements ServiceNotification
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                if (clientsList != null) //server side
+                if (clientsList != null) //leader side
                 {
                     for (ClientConnectionHandler client : clientsList) {
                         if (receiver.equals(client.getClientName())) {
                             sendMessageToClient(messageToSend.toString().getBytes(), client.getSocket());
+                            break;
                         }
                     }
                 } else //client side
@@ -177,7 +178,7 @@ public class CommunicationService extends Service implements ServiceNotification
                     List<String> clients = dbHelper.getAllClients();
                     try {
                         for (String client : clients) {
-                            Thread.sleep(200);
+                            Thread.sleep(300);
                             sendMessageToClient(("client:" + client).getBytes(), clientSocket);
                         }
                     } catch (InterruptedException e) {

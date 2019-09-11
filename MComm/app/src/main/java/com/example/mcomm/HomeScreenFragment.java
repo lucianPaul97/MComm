@@ -270,6 +270,10 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
         @Override
         public void onConnectionInfoAvailable(WifiP2pInfo info) {
 
+
+            SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putBoolean("isGroupFormed", info.groupFormed);
             if(info.groupFormed)
             {
                 shouldServiceBeStarted();
@@ -300,6 +304,12 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
 
     private void loadGroupFragment()
     {
+        if (!isWiFiEnabled())
+        {
+            SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putBoolean("isGroupFormed", false);
+        }
         GroupFragment groupFragment = new GroupFragment();
         FragmentTransaction fragmentTransaction = addAnimationToTransaction();
         fragmentTransaction.replace(R.id.frameContainer, groupFragment);
@@ -314,7 +324,7 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
         {
             SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
             Intent intent = new Intent(getContext(), CommunicationService.class);
-            intent.setAction("createService");
+            intent.setAction("initialize");
             intent.putExtra("isHost", sharedPreferences.getBoolean("isHost", false));
             intent.putExtra("hostAddress", sharedPreferences.getString("hostAddress", ""));
             intent.putExtra("deviceName", MainActivity.deviceName);

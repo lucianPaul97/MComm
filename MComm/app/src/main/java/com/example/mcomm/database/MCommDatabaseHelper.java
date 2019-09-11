@@ -100,7 +100,7 @@ public class MCommDatabaseHelper extends SQLiteOpenHelper {
 
     public List<String> getAllClients() {
         List<String> clients = new ArrayList<>();
-        String query = String.format("SELECT %s FROM %s;", MCommDatabaseContract.ClientsTable.COLUMN_NAME_CLIENT, MCommDatabaseContract.ClientsTable.TABLE_NAME);
+        String query = String.format("SELECT %s FROM %s GROUP BY %s;", MCommDatabaseContract.ClientsTable.COLUMN_NAME_CLIENT, MCommDatabaseContract.ClientsTable.TABLE_NAME, MCommDatabaseContract.ClientsTable.COLUMN_NAME_CLIENT);
         Cursor cursor = dbReadable.rawQuery(query, null);
         while (cursor.moveToNext()) {
             clients.add(cursor.getString(cursor.getColumnIndex(MCommDatabaseContract.ClientsTable.COLUMN_NAME_CLIENT)));

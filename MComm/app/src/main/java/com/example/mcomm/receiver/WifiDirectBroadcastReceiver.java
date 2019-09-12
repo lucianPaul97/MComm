@@ -4,14 +4,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.NetworkInfo;
-import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
 import com.example.mcomm.MyWifiP2PManager;
-import com.example.mcomm.database.MCommDatabaseHelper;
 
 public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
     private WifiP2pManager mManager;
@@ -35,6 +33,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
             {
                 //delete all users from database, because you're disconnected from WiFi P2P Direct
                 mWifiP2PManager.deleteClients();
+                mWifiP2PManager.wifiIsTurnedOff();
             }
 
         } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {

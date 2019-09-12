@@ -71,6 +71,11 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
         RecyclerView recentConversationsList = view.findViewById(R.id.contactsList);
         recentConversationsList.setLayoutManager(new LinearLayoutManager(getActivity()));
         recentConversationsList.setAdapter(deviceListAdapter);
+
+        if (!isWiFiEnabled())
+        {
+            askToEnableWiFi(false);
+        }
     }
 
     @Override
@@ -119,7 +124,7 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
                         }
 
                     } else {
-                        askToEnableWiFi();
+                        askToEnableWiFi(true);
                     }
                     break;
                 case R.id.goToGroupButton:
@@ -223,7 +228,7 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
         askForWifi.show();
     }
 
-    private void askToEnableWiFi() {
+    private void askToEnableWiFi(final boolean performActionAfterRequest) {
         final WifiManager wifiManager = (WifiManager) getActivity().getSystemService(Context.WIFI_SERVICE);
         //build an alert dialog and ask the user to activate te wifi
         AlertDialog.Builder askForWifiBuilder = new AlertDialog.Builder(getContext());
@@ -234,20 +239,18 @@ public class HomeScreenFragment extends Fragment implements CustomDialogListener
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         wifiManager.setWifiEnabled(true);
-                        //if WiFi was enabled, load AvailableDevicesFragment
+                        if (performActionAfterRequest) {
+                            //if WiFi was enabled, load AvailableDevicesFragment
 //                        loadAvailableDevicesFragment();
-                        if (Build.VERSION.SDK_INT >=26) { //check if devices runs Android Oreo or higher
-                            if (isLocationEnabled()) {
+                            if (Build.VERSION.SDK_INT >= 26) { //check if devices runs Android Oreo or higher
+                                if (isLocationEnabled()) {
+                                    loadAvailableDevicesFragment();
+                                } else {
+                                    askToEnableLocation();
+                                }
+                            } else {
                                 loadAvailableDevicesFragment();
                             }
-                            else
-                            {
-                                askToEnableLocation();
-                            }
-                        }
-                        else
-                        {
-                            loadAvailableDevicesFragment();
                         }
                     }
                 }

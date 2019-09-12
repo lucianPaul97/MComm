@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.Image;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -56,7 +57,7 @@ public class GroupFragment extends Fragment implements IClientsListener, Clients
         ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         MainActivity.toolbar.setNavigationOnClickListener(navigationClickListener);
         SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
-        if (sharedPreferences.getBoolean("isGroupFormed", false)) {
+        if (isWiFiEnabled() && sharedPreferences.getBoolean("isGroupFormed", false)) {
             //get shared preferences
             boolean isHost = sharedPreferences.getBoolean("isHost", false);
             String groupOwner = sharedPreferences.getString("groupOwner", "");
@@ -87,12 +88,8 @@ public class GroupFragment extends Fragment implements IClientsListener, Clients
                 databaseHelper.setClientsTableListener(this);
             }
             //start the service
-            if (!isCommunicationServiceRunning()) {
-                startCommunicationService(isHost, hostAddress);
-            }else
-            {
-                deviceListAdapter.updateList(databaseHelper.getAllClients());
-            }
+            startCommunicationService(isHost, hostAddress);
+
         } else {
             view.findViewById(R.id.loadingBar).setVisibility(View.INVISIBLE);
             TextView loadingMessage = view.findViewById(R.id.loadingMessage);
@@ -140,6 +137,12 @@ public class GroupFragment extends Fragment implements IClientsListener, Clients
             fragmentTransaction.commit();
         }
     };
+
+    private boolean isWiFiEnabled()
+    {
+        final WifiManager wifiManager = (WifiManager) getActivity().getSystemService(Context.WIFI_SERVICE);
+        return wifiManager.isWifiEnabled();
+    }
 
     private void startCommunicationService(boolean isHost, @Nullable String hostAddress) {
         Intent intent = new Intent(getActivity(), CommunicationService.class);

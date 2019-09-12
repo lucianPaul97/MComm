@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.util.Date;
+import java.util.List;
 
 public class ClientConnectionHandler extends Thread {
 
@@ -54,7 +55,13 @@ public class ClientConnectionHandler extends Thread {
         if (receivedMessage.contains("client:") || receivedMessage.contains("ient:")) //second check is performed because malformed messages can be received
         {
             if (!MainActivity.deviceName.equals(receivedMessage.replace("client:", ""))) {
-                CommunicationService.dbHelper.addClient(receivedMessage.replace("client:", ""));
+                String[] clients = receivedMessage.replace("client:", "").split("\n");
+                for (int i=0;i<clients.length;++i)
+                {
+                    if (!clients[i].equals("")) {
+                        CommunicationService.dbHelper.addClient(clients[i]);
+                    }
+                }
             }
         }
         else if (receivedMessage.contains("add:")){

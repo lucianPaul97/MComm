@@ -176,14 +176,11 @@ public class CommunicationService extends Service implements ServiceNotification
 
                     //send the list of clients to the new user
                     List<String> clients = dbHelper.getAllClients();
-                    try {
+                    String clientsString="";
                         for (String client : clients) {
-                            Thread.sleep(300);
-                            sendMessageToClient(("client:" + client).getBytes(), clientSocket);
+                            clientsString = String.format("%s\n%s", clientsString, client);
                         }
-                    } catch (InterruptedException e) {
-                        Log.d(TAG, e.getMessage());
-                    }
+                        sendMessageToClient(("client:" + clientsString).getBytes(), clientSocket);
                 }
             } catch (IOException e) {
                 Log.d(TAG, e.getMessage());

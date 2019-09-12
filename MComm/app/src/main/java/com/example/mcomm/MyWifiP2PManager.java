@@ -3,6 +3,7 @@ package com.example.mcomm;
 import android.app.Activity;
 import android.content.Context;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
@@ -173,4 +174,9 @@ public class MyWifiP2PManager {
         mManager.requestConnectionInfo(mChannel, listener);
     }
 
+    public void wifiIsTurnedOff() {
+        SharedPreferences sharedPreferences = mActivity.getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean("isGroupFormed", false);
+    }
 }
